@@ -3,12 +3,18 @@ package dev.logcatdaily.samples.scrollderived
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,9 +26,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+
+private val avatarInitials = listOf("AK", "JR", "MN", "TS", "QW", "ZX", "LB", "YP", "CV", "GD")
 
 private const val TAG = "logcatdaily"
 
@@ -53,18 +63,28 @@ fun ScrollDerivedSample(broken: Boolean) {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(top = 64.dp, bottom = 24.dp),
-        ) {
-            items(100) { index ->
+        Column(Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = 24.dp, vertical = 20.dp)
+            ) {
                 Text(
-                    text = "row $index",
-                    modifier = Modifier.padding(20.dp),
-                    fontSize = 20.sp,
+                    text = "Inbox",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
+            }
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+            ) {
+                items(100) { index -> InboxRow(index) }
             }
         }
         if (showButton) {
@@ -77,5 +97,51 @@ fun ScrollDerivedSample(broken: Boolean) {
                 Text("scroll to top", fontSize = 20.sp)
             }
         }
+    }
+}
+
+@Composable
+private fun InboxRow(index: Int) {
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = avatarInitials[index % avatarInitials.size],
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Column(Modifier.padding(start = 16.dp)) {
+                Text(
+                    text = "Item $index",
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Text(
+                    text = "Updated ${index + 1}m ago",
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp)
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        )
     }
 }

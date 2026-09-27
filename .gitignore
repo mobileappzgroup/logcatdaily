@@ -33,3 +33,19 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Media and recordings: never commit anything captured for the channel
+*.mp4
+*.mov
+*.webm
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.mp3
+*.wav
+*.m4a
+*.logcat.txt
+recordings/
+out/

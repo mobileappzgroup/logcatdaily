@@ -3,7 +3,9 @@ package dev.logcatdaily.samples
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import dev.logcatdaily.samples.anrroom.AnrRoomSample
 import dev.logcatdaily.samples.effectkey.EffectKeySample
+import dev.logcatdaily.samples.lazykey.LazyKeySample
 import dev.logcatdaily.samples.rotationstate.RotationStateSample
 import dev.logcatdaily.samples.scrollderived.ScrollDerivedSample
 import dev.logcatdaily.samples.ui.LogcatDailyTheme
@@ -22,6 +24,8 @@ class MainActivity : ComponentActivity() {
                 when (sample) {
                     "rotation-state" -> RotationStateSample(broken = broken)
                     "effect-key" -> EffectKeySample(broken = broken)
+                    "anr-room" -> AnrRoomSample(broken = broken)
+                    "lazy-key" -> LazyKeySample(broken = broken)
                     else -> ScrollDerivedSample(broken = broken)
                 }
             }

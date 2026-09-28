@@ -15,7 +15,7 @@ adb shell am start -n dev.logcatdaily.samples/.MainActivity \
   --es sample scroll-derived --es variant broken
 ```
 
-`sample` is one of `scroll-derived`, `rotation-state`, `effect-key`.
+`sample` is one of `scroll-derived`, `rotation-state`, `effect-key`, `anr-room`, `lazy-key`.
 `variant` is `broken` or `fixed`. Everything logs under the tag `logcatdaily`.
 
 ## scroll-derived
@@ -51,3 +51,31 @@ anything.
 
 Fix is keying on `userId` instead, which doesn't change once the screen is
 up, so the effect runs once and stays done.
+
+## anr-room
+
+A notes screen with a Save button, backed by a real Room database
+(`Note`, `NoteDao`, `NoteDatabase`). Broken version opens the database with
+`allowMainThreadQueries()` and calls a non-suspend `@Insert` straight from
+the click handler, on the main thread. The write is a real transaction (the
+note plus a batch of history rows, padded with a sleep) that takes about 8
+seconds, so tapping Save freezes the app; tap it again while it's frozen and
+you get a real system "isn't responding" dialog, because an input event went
+unhandled for more than 5 seconds.
+
+Fix is the same write behind a suspend `@Insert`, called from a `ViewModel`
+via `viewModelScope.launch`. Room runs suspend DAO calls on its own executor,
+off the main thread, with no `Dispatchers.IO` needed, so the UI stays free
+to show a spinner while it saves.
+
+## lazy-key
+
+A task list with checkboxes, a Shuffle button, and a delete (X) button on
+each row. Each row remembers its own checked state. Broken version calls
+`items(tasks)` with no key, so Compose identifies each row by its position
+in the list. Check a task, delete a task above it, and the list shifts up:
+the checkmark stays behind at that row position, now showing whatever task
+landed there.
+
+Fix is `items(tasks, key = { it.id })`, so the checked state travels with
+the task it belongs to, not the slot it happened to be sitting in.

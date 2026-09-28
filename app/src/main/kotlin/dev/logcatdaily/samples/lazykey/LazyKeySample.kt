@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 
 private const val TAG = "logcatdaily"
 
@@ -54,6 +56,17 @@ fun LazyKeySample(broken: Boolean) {
         tasks = tasks.filterNot { it.id == id }
     }
 
+    // just a live dot so the screen keeps redrawing even when nothing else
+    // on it is changing (screen recordings otherwise stop advancing during
+    // a fully static hold)
+    var pulseOn by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(400)
+            pulseOn = !pulseOn
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -74,8 +87,18 @@ fun LazyKeySample(broken: Boolean) {
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
-                TextButton(onClick = { tasks = tasks.shuffled() }) {
-                    Text("Shuffle", fontSize = 18.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(
+                                color = if (pulseOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                shape = CircleShape,
+                            )
+                    )
+                    TextButton(onClick = { tasks = tasks.shuffled() }) {
+                        Text("Shuffle", fontSize = 18.sp)
+                    }
                 }
             }
             LazyColumn(modifier = Modifier.fillMaxWidth()) {

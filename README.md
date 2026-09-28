@@ -15,7 +15,8 @@ adb shell am start -n dev.logcatdaily.samples/.MainActivity \
   --es sample scroll-derived --es variant broken
 ```
 
-`sample` is one of `scroll-derived`, `rotation-state`, `effect-key`, `anr-room`, `lazy-key`.
+`sample` is one of `scroll-derived`, `rotation-state`, `effect-key`, `anr-room`, `lazy-key`,
+`cancel-swallow`, `cancel-loop`, `cancel-finally`.
 `variant` is `broken` or `fixed`. Everything logs under the tag `logcatdaily`.
 
 ## scroll-derived
@@ -79,3 +80,35 @@ landed there.
 
 Fix is `items(tasks, key = { it.id })`, so the checked state travels with
 the task it belongs to, not the slot it happened to be sitting in.
+
+## cancel-swallow
+
+A 6-step "upload" that ticks once every 500ms in `viewModelScope`. Broken
+wraps each step in `catch (e: Exception)`, the classic "keep retrying on any
+failure" mistake. That also catches the `CancellationException` the coroutine
+gets when Cancel is tapped, so the loop treats getting cancelled the same as
+a network hiccup and just moves on to the next step anyway, right through to
+"upload finished".
+
+Fix checks `e is CancellationException` and rethrows it instead of retrying,
+so cancelling actually stops the coroutine.
+
+## cancel-loop
+
+A CPU-bound counting loop on `Dispatchers.Default`, no suspend call inside
+it. Broken never checks `isActive`, so there's no point where `cancel()` can
+interrupt it: the tick count keeps climbing after Cancel is tapped, same as
+if nothing happened, until it hits its own safety cap.
+
+Fix checks `isActive` on every pass, so the loop notices the cancellation on
+the very next spin and the tick count freezes immediately.
+
+## cancel-finally
+
+A 5-step save with a `finally` block that runs cleanup after the work loop.
+Broken calls the suspend `cleanup()` directly from `finally`. By the time
+`finally` runs the job is already cancelling, so that suspend call throws
+immediately and cleanup logs "cleanup started" but never "cleanup done".
+
+Fix wraps the same call in `withContext(NonCancellable) { cleanup() }`, so
+cleanup is allowed to run to completion even though the job is cancelled.

@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import dev.logcatdaily.samples.anrroom.AnrRoomSample
+import dev.logcatdaily.samples.cancelfinally.CancelFinallySample
+import dev.logcatdaily.samples.cancelloop.CancelLoopSample
+import dev.logcatdaily.samples.cancelswallow.CancelSwallowSample
 import dev.logcatdaily.samples.effectkey.EffectKeySample
 import dev.logcatdaily.samples.lazykey.LazyKeySample
 import dev.logcatdaily.samples.rotationstate.RotationStateSample
@@ -26,6 +29,9 @@ class MainActivity : ComponentActivity() {
                     "effect-key" -> EffectKeySample(broken = broken)
                     "anr-room" -> AnrRoomSample(broken = broken)
                     "lazy-key" -> LazyKeySample(broken = broken)
+                    "cancel-swallow" -> CancelSwallowSample(broken = broken)
+                    "cancel-loop" -> CancelLoopSample(broken = broken)
+                    "cancel-finally" -> CancelFinallySample(broken = broken)
                     else -> ScrollDerivedSample(broken = broken)
                 }
             }

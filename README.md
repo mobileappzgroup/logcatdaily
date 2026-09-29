@@ -55,7 +55,7 @@ up, so the effect runs once and stays done.
 
 ## anr-room
 
-A notes screen with a Save button, backed by a real Room database
+A light-themed notes screen (seeded list, draft field, Save button), backed by a real Room database
 (`Note`, `NoteDao`, `NoteDatabase`). Broken version opens the database with
 `allowMainThreadQueries()` and calls a non-suspend `@Insert` straight from
 the click handler, on the main thread. The write is a real transaction (the

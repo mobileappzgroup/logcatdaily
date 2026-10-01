@@ -26,6 +26,10 @@
             android:name=".backpress.BackPressOptOutActivity"
             android:enableOnBackInvokedCallback="false"
             android:exported="true" />
+
+        <activity
+            android:name=".interop.ProfileHostActivity"
+            android:exported="true" />
     </application>
 
 </manifest>

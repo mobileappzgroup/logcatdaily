@@ -138,3 +138,13 @@ A Profile card with Name and Email fields and a Clear button. Broken version giv
 
 Fix hoists both strings into the form: the fields take `value` and `onValueChange`, and Clear sets both to
 an empty string. The fixed variant also logs the whole form state on every recomposition.
+
+## interop
+
+`fragment_profile.xml` hosts a `ComposeView` inside an XML layout. `ProfileFragment` binds it with view binding and
+sets `ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed` before `setContent`, which is what the interop
+docs recommend for a ComposeView in a Fragment's view.
+
+```
+adb shell am start -n dev.logcatdaily.samples/.interop.ProfileHostActivity
+```

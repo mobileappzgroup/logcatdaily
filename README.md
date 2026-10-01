@@ -112,3 +112,21 @@ immediately and cleanup logs "cleanup started" but never "cleanup done".
 
 Fix wraps the same call in `withContext(NonCancellable) { cleanup() }`, so
 cleanup is allowed to run to completion even though the job is cancelled.
+
+## back-press
+
+Not launched through MainActivity: it has its own activities, started directly so the screen is the task root.
+
+```
+adb shell am start -n dev.logcatdaily.samples/.backpress.BackPressActivity --es variant broken
+```
+
+A draft card with an Edit button that counts unsaved edits. `BackPressActivity` overrides
+`onBackPressed()` to log and show a "Discard changes?" dialog. With `targetSdk = 36` on an
+Android 16 device, back never reaches that override, so the app just closes with the edits lost.
+
+`--es variant fixed` adds a Compose `BackHandler(enabled = edits > 0)`, which does run and opens the dialog.
+
+`BackPressOptOutActivity` is the same screen and the same override, with
+`android:enableOnBackInvokedCallback="false"` on its manifest entry. On the emulator the override runs again there.
+Send back with `adb shell input keyevent KEYCODE_BACK`.

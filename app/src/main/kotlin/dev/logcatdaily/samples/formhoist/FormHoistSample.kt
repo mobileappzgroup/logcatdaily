@@ -59,11 +59,17 @@ private fun BrokenForm() {
 }
 
 @Composable
-private fun BrokenField(label: String) {
-    var text by rememberSaveable { mutableStateOf("") }
+private fun BrokenField(
+    label: String,
+) {
+    var text by rememberSaveable {
+        mutableStateOf("")
+    }
     OutlinedTextField(
         value = text,
-        onValueChange = { text = it },
+        onValueChange = {
+            text = it
+        },
         label = { Text(label) },
     )
 }
@@ -71,8 +77,12 @@ private fun BrokenField(label: String) {
 // Fixed: the form owns the text. Fields get value down, onValueChange up.
 @Composable
 private fun HoistedForm() {
-    var name by rememberSaveable { mutableStateOf("") }
-    var email by rememberSaveable { mutableStateOf("") }
+    var name by rememberSaveable {
+        mutableStateOf("")
+    }
+    var email by rememberSaveable {
+        mutableStateOf("")
+    }
 
     HoistedField(
         label = "Name",

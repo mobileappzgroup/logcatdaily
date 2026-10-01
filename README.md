@@ -16,7 +16,7 @@ adb shell am start -n dev.logcatdaily.samples/.MainActivity \
 ```
 
 `sample` is one of `scroll-derived`, `rotation-state`, `effect-key`, `anr-room`, `lazy-key`,
-`cancel-swallow`, `cancel-loop`, `cancel-finally`.
+`cancel-swallow`, `cancel-loop`, `cancel-finally`, `form-hoist`.
 `variant` is `broken` or `fixed`. Everything logs under the tag `logcatdaily`.
 
 ## scroll-derived
@@ -130,3 +130,11 @@ Android 16 device, back never reaches that override, so the app just closes with
 `BackPressOptOutActivity` is the same screen and the same override, with
 `android:enableOnBackInvokedCallback="false"` on its manifest entry. On the emulator the override runs again there.
 Send back with `adb shell input keyevent KEYCODE_BACK`.
+
+## form-hoist
+
+A Profile card with Name and Email fields and a Clear button. Broken version gives each field its own
+`rememberSaveable`, so the form has no state to write to and Clear does nothing to the text (it only logs).
+
+Fix hoists both strings into the form: the fields take `value` and `onValueChange`, and Clear sets both to
+an empty string. The fixed variant also logs the whole form state on every recomposition.

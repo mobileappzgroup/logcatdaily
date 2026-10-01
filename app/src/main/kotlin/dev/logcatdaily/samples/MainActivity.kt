@@ -8,6 +8,7 @@ import dev.logcatdaily.samples.cancelfinally.CancelFinallySample
 import dev.logcatdaily.samples.cancelloop.CancelLoopSample
 import dev.logcatdaily.samples.cancelswallow.CancelSwallowSample
 import dev.logcatdaily.samples.effectkey.EffectKeySample
+import dev.logcatdaily.samples.formhoist.FormHoistSample
 import dev.logcatdaily.samples.lazykey.LazyKeySample
 import dev.logcatdaily.samples.rotationstate.RotationStateSample
 import dev.logcatdaily.samples.scrollderived.ScrollDerivedSample
@@ -32,6 +33,7 @@ class MainActivity : ComponentActivity() {
                     "cancel-swallow" -> CancelSwallowSample(broken = broken)
                     "cancel-loop" -> CancelLoopSample(broken = broken)
                     "cancel-finally" -> CancelFinallySample(broken = broken)
+                    "form-hoist" -> FormHoistSample(broken = broken)
                     else -> ScrollDerivedSample(broken = broken)
                 }
             }

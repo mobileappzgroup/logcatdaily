@@ -21,16 +21,10 @@ adb shell am start -n dev.logcatdaily.samples/.MainActivity \
 
 ## scroll-derived
 
-A 100-row list with a "scroll to top" button that should only show up once
-you've scrolled past the first row.
-
-Broken version reads `listState.firstVisibleItemIndex` straight in the
-composable. That reads a snapshot value from the scroll state, so the whole
-composable recomposes on every index change while you scroll, not just the
-one time the button needs to show or hide. Watch the logcat counter, it spams.
-
-Fix is `derivedStateOf`: wrap the comparison so only the boolean result is
-observed. Now it only recomposes when the button actually needs to flip.
+A 100-row list with a "scroll to top" button. Reading `firstVisibleItemIndex`
+in the composable recomposes the screen on every row that scrolls past, 44
+times in one short scroll. `derivedStateOf` brings it down to 2.
+Trace, culprit line and fix: [scrollderived/README.md](app/src/main/kotlin/dev/logcatdaily/samples/scrollderived/README.md)
 
 ## rotation-state
 
@@ -44,14 +38,9 @@ so the value comes back after the rotation.
 
 ## effect-key
 
-A tiny "profile" screen that loads on start. Broken version keys its
-`LaunchedEffect` on the whole ui state object, and the effect itself updates
-that object when the load finishes. New object, new key, so Compose tears
-down and restarts the effect again. It loops forever without you touching
-anything.
-
-Fix is keying on `userId` instead, which doesn't change once the screen is
-up, so the effect runs once and stays done.
+A profile screen whose `LaunchedEffect` is keyed on the ui state it writes to,
+so it restarts itself every 0.7 s forever. Keying on `userId` runs it once.
+Trace, culprit line and fix: [effectkey/README.md](app/src/main/kotlin/dev/logcatdaily/samples/effectkey/README.md)
 
 ## anr-room
 

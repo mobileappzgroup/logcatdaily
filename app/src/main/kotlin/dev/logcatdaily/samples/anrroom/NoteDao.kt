@@ -16,8 +16,8 @@ abstract class NoteDao {
     @Transaction
     open fun insertBlocking(note: Note): Long = insertHeavy(note)
 
-    // Fixed: the same write, but suspend. Room runs suspend DAO calls on
-    // its own executor, off the main thread, no Dispatchers.IO needed.
+    // Fixed: the same write, but suspend. Room runs suspend DAO calls off
+    // the main thread, so the caller adds no dispatcher.
     @Transaction
     open suspend fun insert(note: Note): Long = insertHeavy(note)
 

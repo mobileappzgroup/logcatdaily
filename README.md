@@ -35,6 +35,7 @@ by default).
 
 Fix is `rememberSaveable`, which writes into the saved instance state bundle
 so the value comes back after the rotation.
+Trace, culprit line and fix: [rotationstate/README.md](app/src/main/kotlin/dev/logcatdaily/samples/rotationstate/README.md)
 
 ## effect-key
 

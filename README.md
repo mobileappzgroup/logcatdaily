@@ -3,6 +3,8 @@
 Sample Android code behind the logcat daily reels and Shorts.
 Each folder reproduces one real Android bug or demo: broken first, then fixed.
 
+Written and maintained by Nishant Chauhan ([LinkedIn](https://www.linkedin.com/in/nishant-chauhan-ab476026/)).
+
 - Instagram: https://instagram.com/logcatdaily
 - YouTube: https://youtube.com/@logcatdaily
 

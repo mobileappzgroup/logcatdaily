@@ -10,7 +10,8 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface MessageDao {
 
-    @Query("SELECT * FROM messages ORDER BY createdAt, id")
+    // Acked rows in the server's order, then sends still waiting, oldest first.
+    @Query("SELECT * FROM messages ORDER BY serverSeq IS NULL, serverSeq, createdAt, id")
     fun observeAll(): Flow<List<Message>>
 
     // The local row for a send that has no serverSeq yet.

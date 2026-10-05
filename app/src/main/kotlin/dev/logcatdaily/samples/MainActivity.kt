@@ -11,6 +11,7 @@ import dev.logcatdaily.samples.effectkey.EffectKeySample
 import dev.logcatdaily.samples.formhoist.FormHoistSample
 import dev.logcatdaily.samples.lazykey.LazyKeySample
 import dev.logcatdaily.samples.newlistparam.NewListParamSample
+import dev.logcatdaily.samples.offlinechat.OfflineChatSample
 import dev.logcatdaily.samples.readtoohigh.ReadTooHighSample
 import dev.logcatdaily.samples.rotationstate.RotationStateSample
 import dev.logcatdaily.samples.scrollderived.ScrollDerivedSample
@@ -40,6 +41,7 @@ class MainActivity : ComponentActivity() {
                     "read-too-high" -> ReadTooHighSample(broken = broken)
                     "new-list-param" -> NewListParamSample(broken = broken)
                     "wide-param" -> WideParamSample(broken = broken)
+                    "offline-chat" -> OfflineChatSample()
                     else -> ScrollDerivedSample(broken = broken)
                 }
             }

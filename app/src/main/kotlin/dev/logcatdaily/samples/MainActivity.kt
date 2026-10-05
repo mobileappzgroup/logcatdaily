@@ -10,9 +10,12 @@ import dev.logcatdaily.samples.cancelswallow.CancelSwallowSample
 import dev.logcatdaily.samples.effectkey.EffectKeySample
 import dev.logcatdaily.samples.formhoist.FormHoistSample
 import dev.logcatdaily.samples.lazykey.LazyKeySample
+import dev.logcatdaily.samples.newlistparam.NewListParamSample
+import dev.logcatdaily.samples.readtoohigh.ReadTooHighSample
 import dev.logcatdaily.samples.rotationstate.RotationStateSample
 import dev.logcatdaily.samples.scrollderived.ScrollDerivedSample
 import dev.logcatdaily.samples.ui.LogcatDailyTheme
+import dev.logcatdaily.samples.wideparam.WideParamSample
 
 // Launch a sample by intent extra, e.g.
 // adb shell am start -n dev.logcatdaily.samples/.MainActivity --es sample scroll-derived --es variant broken
@@ -34,6 +37,9 @@ class MainActivity : ComponentActivity() {
                     "cancel-loop" -> CancelLoopSample(broken = broken)
                     "cancel-finally" -> CancelFinallySample(broken = broken)
                     "form-hoist" -> FormHoistSample(broken = broken)
+                    "read-too-high" -> ReadTooHighSample(broken = broken)
+                    "new-list-param" -> NewListParamSample(broken = broken)
+                    "wide-param" -> WideParamSample(broken = broken)
                     else -> ScrollDerivedSample(broken = broken)
                 }
             }

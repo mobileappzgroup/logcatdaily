@@ -110,7 +110,7 @@ fun ChatScreen(
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(messages, key = { it.clientId }) { MessageRow(it) }
+                items(messages, key = { it.id }) { MessageRow(it) }
             }
         }
     }

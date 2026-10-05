@@ -23,7 +23,7 @@ interface OutboxDao {
     @Query(
         "SELECT outbox.clientId FROM outbox " +
             "JOIN messages ON messages.clientId = outbox.clientId " +
-            "WHERE messages.status = 'SENDING' ORDER BY messages.createdAt"
+            "WHERE messages.status = 'SENDING' AND messages.serverSeq IS NULL ORDER BY messages.createdAt"
     )
     suspend fun pendingClientIds(): List<String>
 }

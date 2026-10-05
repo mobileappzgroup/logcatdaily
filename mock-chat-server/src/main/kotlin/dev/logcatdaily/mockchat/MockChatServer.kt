@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 // Mock chat backend for the offline-chat sample. JDK classes only.
 //
 //   POST /messages               store a message, dedupe on Idempotency-Key
-//   GET  /messages               list what is stored
+//   GET  /messages?after=N       rows stored with seq above N (default 0)
 //   POST /admin/drop-next-reply  the next stored message gets no reply (lost ack)
 //   POST /admin/reset            forget everything
 //
@@ -94,8 +94,9 @@ private fun handlePost(exchange: HttpExchange) {
 }
 
 private fun handleList(exchange: HttpExchange) {
+    val after = Regex("after=(\\d+)").find(exchange.requestURI.query ?: "")?.groupValues?.get(1)?.toInt() ?: 0
     val json = synchronized(lock) {
-        rows.joinToString(",", "[", "]") {
+        rows.filter { it.seq > after }.joinToString(",", "[", "]") {
             """{"seq":${it.seq},"clientId":"${it.clientId}","text":"${escape(it.text)}"}"""
         }
     }

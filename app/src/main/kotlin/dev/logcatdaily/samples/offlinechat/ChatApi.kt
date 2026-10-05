@@ -5,11 +5,14 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
 // The server said no and will keep saying no (4xx). Retrying is pointless.
 class ServerRejectedException(val code: Int) : Exception("HTTP $code")
+
+class ServerMessage(val serverSeq: Long, val clientId: String, val text: String)
 
 // Plain HttpURLConnection against the mock on the Mac. 10.0.2.2 is the
 // emulator's alias for the host machine.
@@ -50,6 +53,29 @@ class ChatApi(private val baseUrl: String = "http://10.0.2.2:8080") {
                 }
                 code in 400..499 -> throw ServerRejectedException(code)
                 else -> throw IOException("HTTP $code")
+            }
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    // Every row the server holds with a serverSeq above `after`, oldest first.
+    suspend fun fetchAfter(after: Long): List<ServerMessage> = withContext(Dispatchers.IO) {
+        val connection = URL("$baseUrl/messages?after=$after").openConnection() as HttpURLConnection
+        try {
+            connection.connectTimeout = 3_000
+            connection.readTimeout = 3_000
+            val code = connection.responseCode
+            if (code !in 200..299) throw IOException("HTTP $code")
+            val reply = connection.inputStream.use { it.readBytes().decodeToString() }
+            try {
+                val array = JSONArray(reply)
+                List(array.length()) {
+                    val row = array.getJSONObject(it)
+                    ServerMessage(row.getLong("seq"), row.getString("clientId"), row.getString("text"))
+                }
+            } catch (e: JSONException) {
+                throw IOException("bad reply: $reply", e)
             }
         } finally {
             connection.disconnect()

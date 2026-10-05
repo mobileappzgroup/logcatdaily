@@ -22,7 +22,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val sendWithoutKey: StateFlow<Boolean> = _sendWithoutKey.asStateFlow()
 
     init {
-        viewModelScope.launch { repository.resumePending() }
+        viewModelScope.launch {
+            repository.resumePending()
+            repository.sync()
+        }
     }
 
     fun send(text: String) {

@@ -27,7 +27,7 @@ interface MessageDao {
     @Query("UPDATE messages SET status = 'SENT', serverSeq = :serverSeq WHERE id = :id AND serverSeq IS NULL")
     suspend fun markSent(id: Long, serverSeq: Long)
 
-    @Query("UPDATE messages SET status = 'FAILED' WHERE id = :id")
+    @Query("UPDATE messages SET status = 'FAILED' WHERE id = :id AND serverSeq IS NULL")
     suspend fun markFailed(id: Long)
 
     @Query("SELECT lastSeq FROM sync_state WHERE id = 0")

@@ -19,6 +19,8 @@ private const val MAX_ATTEMPTS = 8
 
 enum class SendOutcome { DONE, RETRY, GAVE_UP }
 
+private enum class MergeResult { NEW, ADOPTED, SKIPPED }
+
 class MessageRepository(
     private val db: ChatDatabase,
     private val api: ChatApi,
@@ -56,7 +58,9 @@ class MessageRepository(
 
     // Called when the chat opens, in case the process died after the insert.
     suspend fun resumePending() {
-        outbox.pendingClientIds().forEach { enqueueRetry(it) }
+        val unsent = outbox.pendingClientIds()
+        Log.d(TAG, "resumePending found ${unsent.size} unsent")
+        unsent.forEach { enqueueRetry(it) }
     }
 
     suspend fun attemptSend(clientId: String): SendOutcome {
@@ -78,7 +82,8 @@ class MessageRepository(
         } catch (e: IOException) {
             outbox.recordFailure(clientId, e.message ?: e.javaClass.simpleName)
             Log.d(TAG, "send failed clientId=${clientId.take(8)} error=${e.message}")
-            val attempts = outbox.get(clientId)?.attempts ?: MAX_ATTEMPTS
+            // No outbox row left: a sync or a concurrent ack already finished this message.
+            val attempts = outbox.get(clientId)?.attempts ?: return SendOutcome.DONE
             if (attempts >= MAX_ATTEMPTS) giveUp(message, e.message) else SendOutcome.RETRY
         }
     }
@@ -98,24 +103,32 @@ class MessageRepository(
         try {
             val rows = api.fetchAfter(messages.lastSyncedSeq() ?: 0L)
             if (rows.isEmpty()) return@withLock
-            db.withTransaction {
-                rows.forEach { merge(it) }
-                messages.saveSyncState(SyncState(lastSeq = rows.maxOf { it.serverSeq }))
+            val upTo = rows.maxOf { it.serverSeq }
+            val results = db.withTransaction {
+                val merged = rows.map { merge(it) }
+                messages.saveSyncState(SyncState(lastSeq = upTo))
+                merged
             }
-            Log.d(TAG, "sync merged ${rows.size} server rows, up to seq=${rows.maxOf { it.serverSeq }}")
+            Log.d(
+                TAG,
+                "sync fetched ${rows.size}: ${results.count { it == MergeResult.NEW }} new, " +
+                    "${results.count { it == MergeResult.ADOPTED }} adopted, " +
+                    "${results.count { it == MergeResult.SKIPPED }} skipped, up to seq=$upTo",
+            )
         } catch (e: IOException) {
             Log.d(TAG, "sync skipped error=${e.message}")
         }
     }
 
-    private suspend fun merge(row: ServerMessage) {
+    private suspend fun merge(row: ServerMessage): MergeResult {
         // Already stored, usually because the ack carried this seq.
-        if (messages.countBySeq(row.serverSeq) > 0) return
+        if (messages.countBySeq(row.serverSeq) > 0) return MergeResult.SKIPPED
         val pending = messages.getUnacked(row.clientId)
         if (pending != null) {
             // Our own send, stored by the server but never acked here.
             messages.markSent(pending.id, row.serverSeq)
             outbox.delete(row.clientId)
+            return MergeResult.ADOPTED
         } else {
             messages.insert(
                 Message(
@@ -126,6 +139,7 @@ class MessageRepository(
                     serverSeq = row.serverSeq,
                 ),
             )
+            return MergeResult.NEW
         }
     }
 

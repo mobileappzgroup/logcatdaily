@@ -82,3 +82,4 @@ adb logcat -s logcatdaily
 
 - Long: https://youtu.be/yy_3-QK38O4
 - Short: https://youtube.com/shorts/Q84JGz0jiME
+- Instagram reel: https://www.instagram.com/reel/DeJ80kYgU7O/

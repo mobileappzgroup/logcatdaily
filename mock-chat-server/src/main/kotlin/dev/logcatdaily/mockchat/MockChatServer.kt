@@ -55,6 +55,8 @@ fun main(args: Array<String>) {
             conversations.clear()
             replyByKey.clear()
         }
+        // A drop armed for one run must not leak into the next.
+        dropNextReply.set(false)
         log("reset: 0 rows")
         reply(exchange, 200, """{"rows":0}""")
     }

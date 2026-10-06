@@ -60,6 +60,7 @@ Fix is the same write behind a suspend `@Insert`, called from a `ViewModel`
 via `viewModelScope.launch`. Room runs suspend DAO calls on its own executor,
 off the main thread, with no `Dispatchers.IO` needed, so the UI stays free
 to show a spinner while it saves.
+Trace, culprit line and fix: [anrroom/README.md](app/src/main/kotlin/dev/logcatdaily/samples/anrroom/README.md)
 
 ## lazy-key
 

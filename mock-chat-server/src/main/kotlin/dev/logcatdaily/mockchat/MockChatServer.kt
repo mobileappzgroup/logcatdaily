@@ -9,8 +9,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 // Mock chat backend for the offline-chat sample. JDK classes only.
 //
-//   POST /messages               store a message, dedupe on Idempotency-Key
-//   GET  /messages?after=N       rows stored with seq above N (default 0)
+//   POST /conversations/{id}/messages          store a message, dedupe on Idempotency-Key
+//   GET  /conversations/{id}/messages?after=N  rows with seq above N (default 0)
+//
+// Any conversation id works, each one counts its own seq from 1.
 //   POST /admin/drop-next-reply  the next stored message gets no reply (lost ack)
 //   POST /admin/reset            forget everything
 //
@@ -18,10 +20,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 private const val PORT = 8080
 
-private class Row(val seq: Int, val clientId: String, val text: String)
+private class Row(val seq: Int, val clientId: String, val senderId: String, val text: String, val sentAt: Long)
 
 private val lock = Any()
-private val rows = mutableListOf<Row>()
+private val conversations = mutableMapOf<String, MutableList<Row>>()
 private val replyByKey = mutableMapOf<String, Row>()
 private val dropNextReply = AtomicBoolean(false)
 private val clock = DateTimeFormatter.ofPattern("HH:mm:ss")
@@ -34,10 +36,12 @@ fun main(args: Array<String>) {
     dropNextReply.set("--drop-next-reply" in args || System.getenv("DROP_NEXT_REPLY") == "1")
 
     val server = HttpServer.create(InetSocketAddress(PORT), 0)
-    server.createContext("/messages") { exchange ->
-        when (exchange.requestMethod) {
-            "POST" -> handlePost(exchange)
-            "GET" -> handleList(exchange)
+    server.createContext("/conversations/") { exchange ->
+        val conversationId = Regex("^/conversations/([^/]+)/messages$").find(exchange.requestURI.path)?.groupValues?.get(1)
+        when {
+            conversationId == null -> reply(exchange, 404, "{}")
+            exchange.requestMethod == "POST" -> handlePost(exchange, conversationId)
+            exchange.requestMethod == "GET" -> handleList(exchange, conversationId)
             else -> reply(exchange, 405, "{}")
         }
     }
@@ -48,7 +52,7 @@ fun main(args: Array<String>) {
     }
     server.createContext("/admin/reset") { exchange ->
         synchronized(lock) {
-            rows.clear()
+            conversations.clear()
             replyByKey.clear()
         }
         log("reset: 0 rows")
@@ -58,27 +62,30 @@ fun main(args: Array<String>) {
     log("mock-chat-server listening on :$PORT drop-next-reply=${dropNextReply.get()}")
 }
 
-private fun handlePost(exchange: HttpExchange) {
+private fun handlePost(exchange: HttpExchange, conversationId: String) {
     val body = exchange.requestBody.readBytes().decodeToString()
     val clientId = field(body, "clientId")
+    val senderId = field(body, "senderId")
     val text = field(body, "text")
-    if (clientId == null || text == null) {
-        reply(exchange, 400, """{"error":"clientId and text are required"}""")
+    if (clientId == null || senderId == null || text == null) {
+        reply(exchange, 400, """{"error":"clientId, senderId and text are required"}""")
         return
     }
     val key = exchange.requestHeaders.getFirst("Idempotency-Key")
+    val scopedKey = key?.let { "$conversationId/$it" }
 
     val stored: Row
     synchronized(lock) {
-        val first = key?.let { replyByKey[it] }
+        val first = scopedKey?.let { replyByKey[it] }
         if (first != null) {
             log("duplicate key clientId=${short(first.clientId)} returned seq=${first.seq}")
             reply(exchange, 200, replyJson(first))
             return
         }
-        stored = Row(rows.size + 1, clientId, text)
+        val rows = conversations.getOrPut(conversationId) { mutableListOf() }
+        stored = Row(rows.size + 1, clientId, senderId, text, System.currentTimeMillis())
         rows += stored
-        if (key != null) replyByKey[key] = stored
+        if (scopedKey != null) replyByKey[scopedKey] = stored
     }
     val keyNote = if (key == null) " (no Idempotency-Key)" else ""
     log("stored clientId=${short(stored.clientId)} seq=${stored.seq}$keyNote text=\"${stored.text}\"")
@@ -93,20 +100,23 @@ private fun handlePost(exchange: HttpExchange) {
     reply(exchange, 200, replyJson(stored))
 }
 
-private fun handleList(exchange: HttpExchange) {
+// One row per line, so a curl from the Mac reads like a table.
+private fun handleList(exchange: HttpExchange, conversationId: String) {
     val after = Regex("after=(\\d+)").find(exchange.requestURI.query ?: "")?.groupValues?.get(1)?.toInt() ?: 0
     val json = synchronized(lock) {
-        rows.filter { it.seq > after }.joinToString(",", "[", "]") {
-            """{"seq":${it.seq},"clientId":"${it.clientId}","text":"${escape(it.text)}"}"""
+        val rows = conversations[conversationId].orEmpty().filter { it.seq > after }
+        if (rows.isEmpty()) "[]" else rows.joinToString(",\n", "[\n", "\n]") {
+            """{"seq":${it.seq},"clientId":"${it.clientId}","senderId":"${escape(it.senderId)}",""" +
+                """"text":"${escape(it.text)}","sentAt":${it.sentAt}}"""
         }
     }
     reply(exchange, 200, json)
 }
 
-private fun replyJson(row: Row) = """{"clientId":"${row.clientId}","serverSeq":${row.seq}}"""
+private fun replyJson(row: Row) = """{"clientId":"${row.clientId}","serverSeq":${row.seq},"sentAt":${row.sentAt}}"""
 
 private fun reply(exchange: HttpExchange, code: Int, json: String) {
-    val bytes = json.toByteArray()
+    val bytes = (json + "\n").toByteArray()
     exchange.responseHeaders.add("Content-Type", "application/json")
     exchange.sendResponseHeaders(code, bytes.size.toLong())
     exchange.responseBody.use { it.write(bytes) }

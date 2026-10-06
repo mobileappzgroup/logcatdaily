@@ -1,9 +1,6 @@
 package dev.logcatdaily.samples.offlinechat
 
 import android.util.Log
-import androidx.room.withTransaction
-import androidx.work.ExistingWorkPolicy
-import androidx.work.WorkManager
 import java.io.IOException
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
@@ -22,20 +19,22 @@ enum class SendOutcome { DONE, RETRY, GAVE_UP }
 private enum class MergeResult { NEW, ADOPTED, SKIPPED }
 
 class MessageRepository(
-    private val db: ChatDatabase,
+    private val messages: MessageDao,
+    private val outbox: OutboxDao,
     private val api: ChatApi,
-    private val workManager: WorkManager,
+    private val transactor: Transactor,
+    // Queues the unique SendWorker request for a clientId.
+    private val scheduleRetry: (String) -> Unit,
+    private val conversationId: String = DEFAULT_CONVERSATION_ID,
+    private val senderId: String = PHONE_SENDER_ID,
 ) {
-    private val messages = db.messageDao()
-    private val outbox = db.outboxDao()
-
     // Not tied to the screen: leaving the chat must not cancel a send that is
     // already on the wire.
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val syncLock = Mutex()
 
-    val observeMessages: Flow<List<Message>> = messages.observeAll()
+    val observeMessages: Flow<List<Message>> = messages.observeAll(conversationId)
 
     var sendWithoutKey: Boolean
         get() = !api.sendIdempotencyKey
@@ -47,20 +46,42 @@ class MessageRepository(
         val clientId = UUID.randomUUID().toString()
         // Message and outbox row go in together or not at all. A message
         // without an outbox row would sit in SENDING forever.
-        db.withTransaction {
-            messages.insert(Message(clientId = clientId, text = text, status = MessageStatus.SENDING, createdAt = System.currentTimeMillis()))
+        transactor.run {
+            messages.insert(
+                Message(
+                    clientId = clientId,
+                    conversationId = conversationId,
+                    senderId = senderId,
+                    text = text,
+                    status = MessageStatus.SENDING,
+                    createdAt = System.currentTimeMillis(),
+                ),
+            )
             outbox.insert(OutboxEntry(clientId))
         }
         scope.launch {
-            if (attemptSend(clientId) == SendOutcome.RETRY) enqueueRetry(clientId)
+            if (attemptSend(clientId) == SendOutcome.RETRY) scheduleRetry(clientId)
         }
+    }
+
+    // Tap on a FAILED bubble: start over with a fresh attempt count.
+    suspend fun retry(clientId: String) {
+        val message = messages.getUnacked(clientId) ?: return
+        val reset = transactor.run {
+            if (messages.markSending(message.id) == 0) return@run false
+            outbox.upsert(OutboxEntry(clientId))
+            true
+        }
+        if (!reset) return
+        Log.d(TAG, "retry clientId=${clientId.take(8)}")
+        scheduleRetry(clientId)
     }
 
     // Called when the chat opens, in case the process died after the insert.
     suspend fun resumePending() {
         val unsent = outbox.pendingClientIds()
         Log.d(TAG, "resumePending found ${unsent.size} unsent")
-        unsent.forEach { enqueueRetry(it) }
+        unsent.forEach { scheduleRetry(it) }
     }
 
     suspend fun attemptSend(clientId: String): SendOutcome {
@@ -69,12 +90,12 @@ class MessageRepository(
 
         Log.d(TAG, "send attempt clientId=${clientId.take(8)} key=${api.sendIdempotencyKey}")
         return try {
-            val serverSeq = api.send(clientId, message.text)
-            db.withTransaction {
-                messages.markSent(message.id, serverSeq)
+            val ack = api.send(conversationId, clientId, senderId, message.text)
+            transactor.run {
+                messages.markSent(message.id, ack.serverSeq, ack.sentAt)
                 outbox.delete(clientId)
             }
-            Log.d(TAG, "acked clientId=${clientId.take(8)} serverSeq=$serverSeq")
+            Log.d(TAG, "acked clientId=${clientId.take(8)} serverSeq=${ack.serverSeq}")
             sync()
             SendOutcome.DONE
         } catch (e: ServerRejectedException) {
@@ -89,7 +110,7 @@ class MessageRepository(
     }
 
     private suspend fun giveUp(message: Message, error: String?): SendOutcome {
-        db.withTransaction {
+        transactor.run {
             messages.markFailed(message.id)
             outbox.recordFailure(message.clientId, error ?: "unknown")
         }
@@ -101,12 +122,12 @@ class MessageRepository(
     // by serverSeq, the server's own id. Runs on chat open and after each ack.
     suspend fun sync() = syncLock.withLock {
         try {
-            val rows = api.fetchAfter(messages.lastSyncedSeq() ?: 0L)
+            val rows = api.fetchAfter(conversationId, messages.lastSyncedSeq(conversationId) ?: 0L)
             if (rows.isEmpty()) return@withLock
             val upTo = rows.maxOf { it.serverSeq }
-            val results = db.withTransaction {
+            val results = transactor.run {
                 val merged = rows.map { merge(it) }
-                messages.saveSyncState(SyncState(lastSeq = upTo))
+                messages.saveSyncState(SyncState(conversationId, upTo))
                 merged
             }
             Log.d(
@@ -122,32 +143,27 @@ class MessageRepository(
 
     private suspend fun merge(row: ServerMessage): MergeResult {
         // Already stored, usually because the ack carried this seq.
-        if (messages.countBySeq(row.serverSeq) > 0) return MergeResult.SKIPPED
+        if (messages.countBySeq(conversationId, row.serverSeq) > 0) return MergeResult.SKIPPED
         val pending = messages.getUnacked(row.clientId)
         if (pending != null) {
             // Our own send, stored by the server but never acked here.
-            messages.markSent(pending.id, row.serverSeq)
+            messages.markSent(pending.id, row.serverSeq, row.sentAt)
             outbox.delete(row.clientId)
             return MergeResult.ADOPTED
         } else {
             messages.insert(
                 Message(
                     clientId = row.clientId,
+                    conversationId = conversationId,
+                    senderId = row.senderId,
                     text = row.text,
                     status = MessageStatus.SENT,
-                    createdAt = System.currentTimeMillis(),
+                    createdAt = row.sentAt,
+                    sentAt = row.sentAt,
                     serverSeq = row.serverSeq,
                 ),
             )
             return MergeResult.NEW
         }
-    }
-
-    private fun enqueueRetry(clientId: String) {
-        workManager.enqueueUniqueWork(
-            SendWorker.uniqueName(clientId),
-            ExistingWorkPolicy.KEEP,
-            SendWorker.request(clientId),
-        )
     }
 }

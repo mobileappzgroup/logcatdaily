@@ -34,6 +34,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { repository.send(trimmed) }
     }
 
+    fun retry(clientId: String) {
+        viewModelScope.launch { repository.retry(clientId) }
+    }
+
     fun setSendWithoutKey(enabled: Boolean) {
         repository.sendWithoutKey = enabled
         _sendWithoutKey.value = enabled

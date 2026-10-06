@@ -36,6 +36,11 @@ android {
         compose = true
         viewBinding = true
     }
+
+    testOptions {
+        // android.util.Log in the repository is a no-op on the plain JVM.
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -55,4 +60,6 @@ dependencies {
     implementation("androidx.room:room-ktx:2.8.4")
     ksp("androidx.room:room-compiler:2.8.4")
     implementation("androidx.work:work-runtime-ktx:2.12.0")
+
+    testImplementation("junit:junit:4.13.2")
 }

@@ -3,12 +3,16 @@ package dev.logcatdaily.samples.offlinechat
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Upsert
 
 @Dao
 interface OutboxDao {
 
     @Insert
     suspend fun insert(entry: OutboxEntry)
+
+    @Upsert
+    suspend fun upsert(entry: OutboxEntry)
 
     @Query("SELECT * FROM outbox WHERE clientId = :clientId")
     suspend fun get(clientId: String): OutboxEntry?

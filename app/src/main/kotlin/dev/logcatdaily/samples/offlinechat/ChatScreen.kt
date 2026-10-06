@@ -2,6 +2,7 @@ package dev.logcatdaily.samples.offlinechat
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -62,6 +63,7 @@ fun OfflineChatSample() {
         sendWithoutKey = sendWithoutKey,
         onSendWithoutKeyChange = viewModel::setSendWithoutKey,
         onSend = viewModel::send,
+        onRetry = viewModel::retry,
     )
 }
 
@@ -72,6 +74,7 @@ fun ChatScreen(
     sendWithoutKey: Boolean,
     onSendWithoutKeyChange: (Boolean) -> Unit,
     onSend: (String) -> Unit,
+    onRetry: (String) -> Unit,
 ) {
     var draft by rememberSaveable { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -110,7 +113,7 @@ fun ChatScreen(
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(messages, key = { it.id }) { MessageRow(it) }
+                items(messages, key = { it.id }) { MessageRow(it, onRetry) }
             }
         }
     }
@@ -133,9 +136,11 @@ private fun DebugToggle(enabled: Boolean, onChange: (Boolean) -> Unit) {
 }
 
 @Composable
-private fun MessageRow(message: Message) {
+private fun MessageRow(message: Message, onRetry: (String) -> Unit) {
+    val failed = message.status == MessageStatus.FAILED
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        // A FAILED bubble is a button: tap to send it again.
+        modifier = Modifier.fillMaxWidth().clickable(enabled = failed) { onRetry(message.clientId) },
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 2.dp,

@@ -26,11 +26,17 @@ object ChatGraph {
             outbox = db.outboxDao(),
             api = ChatApi(),
             transactor = RoomTransactor(db),
-            scheduleRetry = { clientId ->
+            scheduleDrain = { conversationId ->
+                // APPEND_OR_REPLACE, not KEEP. With KEEP, a worker that has
+                // already read an empty queue still counts as existing work, so
+                // a row inserted just after that read would wait for the next
+                // chat open. Appended work always runs after it. The worker
+                // never returns failure, so a chain is never cancelled, and an
+                // extra link just finds the queue empty.
                 workManager.enqueueUniqueWork(
-                    SendWorker.uniqueName(clientId),
-                    ExistingWorkPolicy.KEEP,
-                    SendWorker.request(clientId),
+                    SendWorker.uniqueName(conversationId),
+                    ExistingWorkPolicy.APPEND_OR_REPLACE,
+                    SendWorker.request(),
                 )
             },
         )

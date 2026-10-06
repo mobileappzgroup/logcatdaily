@@ -1,6 +1,9 @@
 package dev.logcatdaily.samples.offlinechat
 
 import java.io.IOException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -13,7 +16,13 @@ class MessageRepositoryTest {
     private val outbox = FakeOutboxDao(messages)
     private val api = FakeApi()
     private val scheduled = mutableListOf<String>()
-    private val repository = MessageRepository(messages, outbox, api, DirectTransactor, { scheduled += it })
+
+    // Unconfined: the foreground drain that send() launches runs inside the test.
+    private val repository = MessageRepository(
+        messages, outbox, api, DirectTransactor, { scheduled += it },
+        scope = CoroutineScope(Dispatchers.Unconfined),
+    )
+    private var tapClock = 10L
 
     // A message the way send() leaves it: a SENDING row and an outbox row.
     private fun pending(clientId: String, text: String = "hi") = runBlocking {
@@ -24,7 +33,7 @@ class MessageRepositoryTest {
                 senderId = PHONE_SENDER_ID,
                 text = text,
                 status = MessageStatus.SENDING,
-                createdAt = 10,
+                createdAt = tapClock++,
             ),
         )
         outbox.insert(OutboxEntry(clientId))
@@ -37,7 +46,7 @@ class MessageRepositoryTest {
     @Test
     fun skipsARowThatIsAlreadyStored() = runBlocking {
         pending("a")
-        repository.attemptSend("a")
+        repository.drain()
         val before = messages.rows.toList()
 
         repository.sync()
@@ -86,13 +95,13 @@ class MessageRepositoryTest {
         assertEquals(2L, messages.syncState[DEFAULT_CONVERSATION_ID])
     }
 
-    // attemptSend
+    // drain, one message
 
     @Test
     fun successMarksTheMessageSent() = runBlocking {
         pending("a")
 
-        assertEquals(SendOutcome.DONE, repository.attemptSend("a"))
+        assertEquals(DrainResult.DONE, repository.drain())
 
         val sent = row("a")
         assertEquals(MessageStatus.SENT, sent.status)
@@ -107,7 +116,7 @@ class MessageRepositoryTest {
         pending("a")
         api.failures += IOException("offline")
 
-        assertEquals(SendOutcome.RETRY, repository.attemptSend("a"))
+        assertEquals(DrainResult.RETRY, repository.drain())
 
         assertEquals(MessageStatus.SENDING, row("a").status)
         assertEquals(1, outbox.get("a")?.attempts)
@@ -118,7 +127,7 @@ class MessageRepositoryTest {
         pending("a")
         api.failures += failureFor(429)
 
-        assertEquals(SendOutcome.RETRY, repository.attemptSend("a"))
+        assertEquals(DrainResult.RETRY, repository.drain())
         assertEquals(MessageStatus.SENDING, row("a").status)
     }
 
@@ -127,8 +136,9 @@ class MessageRepositoryTest {
         pending("a")
         api.failures += failureFor(400)
 
-        assertEquals(SendOutcome.GAVE_UP, repository.attemptSend("a"))
+        assertEquals(DrainResult.DONE, repository.drain())
         assertEquals(MessageStatus.FAILED, row("a").status)
+        assertNull(outbox.get("a"))
     }
 
     @Test
@@ -136,12 +146,13 @@ class MessageRepositoryTest {
         pending("a")
         repeat(7) {
             api.failures += IOException("offline")
-            assertEquals(SendOutcome.RETRY, repository.attemptSend("a"))
+            assertEquals(DrainResult.RETRY, repository.drain())
         }
         api.failures += IOException("offline")
 
-        assertEquals(SendOutcome.GAVE_UP, repository.attemptSend("a"))
+        assertEquals(DrainResult.DONE, repository.drain())
         assertEquals(MessageStatus.FAILED, row("a").status)
+        assertNull(outbox.get("a"))
     }
 
     @Test
@@ -149,8 +160,8 @@ class MessageRepositoryTest {
         pending("a")
         api.lostAcks = 1
 
-        assertEquals(SendOutcome.RETRY, repository.attemptSend("a"))
-        assertEquals(SendOutcome.DONE, repository.attemptSend("a"))
+        assertEquals(DrainResult.RETRY, repository.drain())
+        assertEquals(DrainResult.DONE, repository.drain())
 
         assertEquals(1, api.stored.size)
         assertEquals(1, messages.rows.size)
@@ -163,37 +174,153 @@ class MessageRepositoryTest {
         pending("a")
         api.lostAcks = 1
 
-        assertEquals(SendOutcome.RETRY, repository.attemptSend("a"))
-        assertEquals(SendOutcome.DONE, repository.attemptSend("a"))
+        assertEquals(DrainResult.RETRY, repository.drain())
+        assertEquals(DrainResult.DONE, repository.drain())
 
         // The server now holds two rows, so the sync after the ack adds the first as its own bubble.
         assertEquals(2, api.stored.size)
         assertEquals(listOf(1L, 2L), messages.rows.mapNotNull { it.serverSeq }.sorted())
     }
 
-    // tap on a FAILED bubble
+    // drain, the queue
 
     @Test
-    fun retryResetsAFailedMessageAndQueuesTheWorker() = runBlocking {
+    fun twoMessagesQueuedOfflineReachTheServerInTapOrder() = runBlocking {
+        api.offline = true
+        repository.send("first")
+        repository.send("second")
+        repository.send("third")
+        assertTrue(api.stored.isEmpty())
+        assertEquals(listOf(DEFAULT_CONVERSATION_ID), scheduled.distinct())
+
+        api.offline = false
+        assertEquals(DrainResult.DONE, repository.drain())
+
+        assertEquals(listOf("first", "second", "third"), api.stored.map { it.text })
+        assertEquals(listOf("first", "second", "third"), messages.rows.sortedBy { it.serverSeq }.map { it.text })
+        assertTrue(messages.rows.all { it.status == MessageStatus.SENT })
+    }
+
+    @Test
+    fun aMessageTappedWhileAnotherIsOnTheWireWaitsForIt() = runBlocking {
+        api.gate = CompletableDeferred()
+        val held = api.gate!!
+        repository.send("first")
+        repository.send("second")
+        // The first send is held on the wire; the second must not slip past it.
+        assertEquals(1, api.sendCalls)
+
+        held.complete(Unit)
+
+        assertEquals(listOf("first", "second"), api.stored.map { it.text })
+        assertEquals(2, api.sendCalls)
+    }
+
+    @Test
+    fun retryableFailureOnTheHeadBlocksTheSecond() = runBlocking {
+        pending("a")
+        pending("b")
+        api.failures += IOException("offline")
+
+        assertEquals(DrainResult.RETRY, repository.drain())
+
+        assertEquals(1, api.sendCalls)
+        assertTrue(api.stored.isEmpty())
+        assertEquals(MessageStatus.SENDING, row("b").status)
+        assertEquals(0, outbox.get("b")?.attempts)
+
+        assertEquals(DrainResult.DONE, repository.drain())
+        assertEquals(listOf("a", "b"), api.stored.map { it.clientId })
+    }
+
+    @Test
+    fun finalRejectionOnTheHeadLetsTheSecondGo() = runBlocking {
+        pending("a")
+        pending("b")
+        api.failures += failureFor(400)
+
+        assertEquals(DrainResult.DONE, repository.drain())
+
+        assertEquals(MessageStatus.FAILED, row("a").status)
+        assertEquals(MessageStatus.SENT, row("b").status)
+        assertEquals(listOf("b"), api.stored.map { it.clientId })
+    }
+
+    @Test
+    fun theEighthFailureOfTheHeadFreesTheQueue() = runBlocking {
+        pending("a")
+        pending("b")
+        repeat(7) {
+            api.failures += IOException("offline")
+            assertEquals(DrainResult.RETRY, repository.drain())
+        }
+        api.failures += IOException("offline")
+
+        assertEquals(DrainResult.DONE, repository.drain())
+
+        assertEquals(MessageStatus.FAILED, row("a").status)
+        assertNull(outbox.get("a"))
+        assertEquals(MessageStatus.SENT, row("b").status)
+    }
+
+    @Test
+    fun drainOnAnEmptyOutboxDoesNothing() = runBlocking {
+        assertEquals(DrainResult.DONE, repository.drain())
+        assertEquals(0, api.sendCalls)
+    }
+
+    // resumePending and tap on a FAILED bubble
+
+    @Test
+    fun resumePendingDrainsWhatTheProcessLeftBehind() = runBlocking {
+        pending("a")
+        pending("b")
+
+        repository.resumePending()
+
+        assertEquals(listOf("a", "b"), api.stored.map { it.clientId })
+    }
+
+    @Test
+    fun retrySendsAFailedMessageAgain() = runBlocking {
         pending("a")
         api.failures += failureFor(400)
-        repository.attemptSend("a")
+        repository.drain()
+
+        repository.retry("a")
+
+        assertEquals(MessageStatus.SENT, row("a").status)
+        assertEquals(1, api.stored.size)
+    }
+
+    @Test
+    fun retryStartsOverWithAFreshAttemptCount() = runBlocking {
+        pending("a")
+        repeat(8) {
+            api.failures += IOException("offline")
+            repository.drain()
+        }
+        assertEquals(MessageStatus.FAILED, row("a").status)
+        scheduled.clear()
+        api.failures += IOException("offline")
 
         repository.retry("a")
 
         assertEquals(MessageStatus.SENDING, row("a").status)
-        assertEquals(0, outbox.get("a")?.attempts)
-        assertEquals(listOf("a"), scheduled)
+        assertEquals(1, outbox.get("a")?.attempts)
+        assertEquals(listOf(DEFAULT_CONVERSATION_ID), scheduled)
     }
 
     @Test
     fun retryLeavesASentMessageAlone() = runBlocking {
         pending("a")
-        repository.attemptSend("a")
+        repository.drain()
+        val calls = api.sendCalls
 
         repository.retry("a")
 
         assertEquals(MessageStatus.SENT, row("a").status)
+        assertEquals(calls, api.sendCalls)
         assertTrue(scheduled.isEmpty())
     }
 

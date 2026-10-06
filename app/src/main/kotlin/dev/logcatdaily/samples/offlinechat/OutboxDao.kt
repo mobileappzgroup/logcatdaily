@@ -23,11 +23,24 @@ interface OutboxDao {
     @Query("UPDATE outbox SET attempts = attempts + 1, lastError = :error WHERE clientId = :clientId")
     suspend fun recordFailure(clientId: String, error: String)
 
-    // Oldest first, and only messages that are still waiting to go out.
+    // The queue for one conversation: messages still waiting to go out, oldest
+    // tap first (id breaks a tie in the same millisecond).
     @Query(
         "SELECT outbox.clientId FROM outbox " +
             "JOIN messages ON messages.clientId = outbox.clientId " +
-            "WHERE messages.status = 'SENDING' AND messages.serverSeq IS NULL ORDER BY messages.createdAt"
+            "WHERE messages.conversationId = :conversationId " +
+            "AND messages.status = 'SENDING' AND messages.serverSeq IS NULL " +
+            "ORDER BY messages.createdAt, messages.id"
     )
-    suspend fun pendingClientIds(): List<String>
+    suspend fun pendingClientIds(conversationId: String): List<String>
+
+    // The head of that queue.
+    @Query(
+        "SELECT outbox.clientId FROM outbox " +
+            "JOIN messages ON messages.clientId = outbox.clientId " +
+            "WHERE messages.conversationId = :conversationId " +
+            "AND messages.status = 'SENDING' AND messages.serverSeq IS NULL " +
+            "ORDER BY messages.createdAt, messages.id LIMIT 1"
+    )
+    suspend fun nextClientId(conversationId: String): String?
 }

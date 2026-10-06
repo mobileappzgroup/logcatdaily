@@ -64,22 +64,29 @@ stores nothing. The sample uses one conversation, `c1`. The phone is
 Three parts that only work together:
 
 1. Outbox. The message and its outbox row are written in one transaction in
-   [`send`](MessageRepository.kt#L45), so a message can never sit in SENDING
+   [`send`](MessageRepository.kt#L52), so a message can never sit in SENDING
    with nobody to send it.
-2. Send now, retry later. `send` tries once in the foreground. If that fails
-   it queues a unique `SendWorker` for the message, which retries with
-   backoff, 8 tries at most ([`attemptSend`](MessageRepository.kt#L87)). On
-   chat open, [`resumePending`](MessageRepository.kt#L81) queues anything
-   the process died on.
+2. Send now, retry later, in order. `send` launches the drain and returns.
+   [`drain`](MessageRepository.kt#L104) takes a lock for the conversation,
+   then sends the oldest outbox row (by `createdAt`), one at a time, each with
+   its key. A retryable failure stops the drain and a unique `SendWorker`
+   (`outbox-c1`) runs the same drain once there is a connection, with backoff.
+   After 8 tries a message turns FAILED and the queue moves on. On chat open,
+   [`resumePending`](MessageRepository.kt#L86) drains whatever the process
+   died on.
 3. Idempotency key. The key is the `clientId`
    ([`ChatApi.kt:67`](ChatApi.kt#L67)). Retrying is only safe because the
    server answers a repeated key with the first reply.
+
+Order: the outbox is a queue per conversation, not a set of independent
+jobs. Two messages sent offline reach the server in tap order, and a message
+that is waiting for a retry holds back the ones behind it.
 
 Retry rule ([`failureFor`](ChatApi.kt#L28)): network errors, 5xx, 408, 425 and
 429 retry. Any other 4xx is final and the bubble turns FAILED. Tap a FAILED
 bubble to start over with attempts back at 0.
 
-[`sync`](MessageRepository.kt#L123) asks for rows after `lastSeq` on chat open
+[`sync`](MessageRepository.kt#L150) asks for rows after `lastSeq` on chat open
 and after each ack, and merges them by `serverSeq`: already stored is
 skipped, a `clientId` that matches an unacked local row is adopted (seq and
 `sentAt`), anything else becomes its own SENT message. Acked rows are shown
@@ -139,7 +146,13 @@ unique locally and why the check above is a curl against the server.
 - Room uses a destructive migration. A schema change wipes the local data.
 - The retry is a plain `OneTimeWorkRequest`. A real app would make a user send
   expedited work so Doze does not delay it.
+- The drain lock lives in the repository, which is built for one conversation.
+  Several conversations would need one lock each.
+- A message waiting for a retry holds back the ones behind it, so one stuck
+  message delays the conversation until it succeeds or hits 8 tries.
 
 Tests: `./gradlew :app:testDebugUnitTest` runs the merge outcomes, the send
 outcomes with a fake `ChatApi` (success, network error, 429, 400, 8th failure,
-lost ack with and without the key) and the tap to retry.
+lost ack with and without the key), the queue order (offline taps arrive in
+order, a retryable failure on the head blocks the next one, a final 4xx does
+not), resume on open and the tap to retry.

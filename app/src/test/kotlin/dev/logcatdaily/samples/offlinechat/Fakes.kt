@@ -1,6 +1,7 @@
 package dev.logcatdaily.samples.offlinechat
 
 import java.io.IOException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -76,11 +77,17 @@ class FakeOutboxDao(private val messages: FakeMessageDao) : OutboxDao {
         entries[clientId]?.let { entries[clientId] = it.copy(attempts = it.attempts + 1, lastError = error) }
     }
 
-    override suspend fun pendingClientIds(): List<String> =
+    override suspend fun pendingClientIds(conversationId: String): List<String> =
         messages.rows
-            .filter { it.status == MessageStatus.SENDING && it.serverSeq == null && it.clientId in entries }
-            .sortedBy { it.createdAt }
+            .filter {
+                it.conversationId == conversationId && it.status == MessageStatus.SENDING &&
+                    it.serverSeq == null && it.clientId in entries
+            }
+            .sortedWith(compareBy({ it.createdAt }, { it.id }))
             .map { it.clientId }
+
+    override suspend fun nextClientId(conversationId: String): String? =
+        pendingClientIds(conversationId).firstOrNull()
 }
 
 object DirectTransactor : Transactor {
@@ -90,16 +97,26 @@ object DirectTransactor : Transactor {
 // A tiny server behind the ChatApi seam. `failures` are used up one per send,
 // oldest first; a null entry means the send goes through. `lostAcks` makes the
 // server store the message and then fail the call, like a dropped reply.
+// `gate`, when set, holds the next send on the wire until it is completed.
 class FakeApi : ChatApi() {
     val stored = mutableListOf<ServerMessage>()
     val failures = ArrayDeque<Exception?>()
     var lostAcks = 0
     var sendCalls = 0
+    var gate: CompletableDeferred<Unit>? = null
+
+    // While true every send fails before it reaches the server, like airplane mode.
+    var offline = false
     private val acks = mutableMapOf<String, SendAck>()
     private var clock = 1_000L
 
     override suspend fun send(conversationId: String, clientId: String, senderId: String, text: String): SendAck {
         sendCalls++
+        gate?.let {
+            gate = null
+            it.await()
+        }
+        if (offline) throw IOException("offline")
         failures.removeFirstOrNull()?.let { throw it }
         val first = if (sendIdempotencyKey) acks[clientId] else null
         val ack = first ?: SendAck(stored.size + 1L, clock++).also {

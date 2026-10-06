@@ -14,7 +14,11 @@ import kotlinx.coroutines.sync.withLock
 private const val TAG = "logcatdaily"
 private const val MAX_ATTEMPTS = 8
 
-enum class SendOutcome { DONE, RETRY, GAVE_UP }
+// What one drain of the outbox ended with: everything sent or failed for good,
+// or the head of the queue hit a failure worth another try.
+enum class DrainResult { DONE, RETRY }
+
+private enum class SendOutcome { DONE, RETRY, GAVE_UP }
 
 private enum class MergeResult { NEW, ADOPTED, SKIPPED }
 
@@ -23,16 +27,19 @@ class MessageRepository(
     private val outbox: OutboxDao,
     private val api: ChatApi,
     private val transactor: Transactor,
-    // Queues the unique SendWorker request for a clientId.
-    private val scheduleRetry: (String) -> Unit,
+    // Queues the unique SendWorker for a conversation id.
+    private val scheduleDrain: (String) -> Unit,
     private val conversationId: String = DEFAULT_CONVERSATION_ID,
     private val senderId: String = PHONE_SENDER_ID,
-) {
     // Not tied to the screen: leaving the chat must not cancel a send that is
     // already on the wire.
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+) {
     private val syncLock = Mutex()
+
+    // One lock for this conversation's outbox. The foreground drain and
+    // SendWorker both go through it, so only one message is on the wire at a time.
+    private val drainLock = Mutex()
 
     val observeMessages: Flow<List<Message>> = messages.observeAll(conversationId)
 
@@ -59,9 +66,7 @@ class MessageRepository(
             )
             outbox.insert(OutboxEntry(clientId))
         }
-        scope.launch {
-            if (attemptSend(clientId) == SendOutcome.RETRY) scheduleRetry(clientId)
-        }
+        launchDrain()
     }
 
     // Tap on a FAILED bubble: start over with a fresh attempt count.
@@ -74,17 +79,39 @@ class MessageRepository(
         }
         if (!reset) return
         Log.d(TAG, "retry clientId=${clientId.take(8)}")
-        scheduleRetry(clientId)
+        launchDrain()
     }
 
     // Called when the chat opens, in case the process died after the insert.
     suspend fun resumePending() {
-        val unsent = outbox.pendingClientIds()
+        val unsent = outbox.pendingClientIds(conversationId)
         Log.d(TAG, "resumePending found ${unsent.size} unsent")
-        unsent.forEach { scheduleRetry(it) }
+        if (unsent.isNotEmpty()) launchDrain()
     }
 
-    suspend fun attemptSend(clientId: String): SendOutcome {
+    // Send now in the foreground; if the head of the queue hits a retryable
+    // failure, hand the rest to the worker.
+    private fun launchDrain() {
+        scope.launch {
+            if (drain() == DrainResult.RETRY) scheduleDrain(conversationId)
+        }
+    }
+
+    // The outbox is a queue per conversation: oldest tap first, one message at a
+    // time. A retryable failure stops the drain, so the head waits and nothing
+    // behind it can overtake it. Messages that fail for good are marked FAILED
+    // and the drain moves on.
+    suspend fun drain(): DrainResult = drainLock.withLock { drainQueue() }
+
+    private suspend fun drainQueue(): DrainResult {
+        Log.d(TAG, "drain $conversationId: ${outbox.pendingClientIds(conversationId).size} queued")
+        while (true) {
+            val clientId = outbox.nextClientId(conversationId) ?: return DrainResult.DONE
+            if (attemptSend(clientId) == SendOutcome.RETRY) return DrainResult.RETRY
+        }
+    }
+
+    private suspend fun attemptSend(clientId: String): SendOutcome {
         val message = messages.getUnacked(clientId)
         if (message == null || message.status != MessageStatus.SENDING) return SendOutcome.DONE
 
@@ -112,7 +139,7 @@ class MessageRepository(
     private suspend fun giveUp(message: Message, error: String?): SendOutcome {
         transactor.run {
             messages.markFailed(message.id)
-            outbox.recordFailure(message.clientId, error ?: "unknown")
+            outbox.delete(message.clientId)
         }
         Log.d(TAG, "gave up clientId=${message.clientId.take(8)} error=$error")
         return SendOutcome.GAVE_UP

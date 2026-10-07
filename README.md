@@ -85,6 +85,7 @@ a network hiccup and just moves on to the next step anyway, right through to
 
 Fix checks `e is CancellationException` and rethrows it instead of retrying,
 so cancelling actually stops the coroutine.
+Trace, culprit line and fix: [cancelswallow/README.md](app/src/main/kotlin/dev/logcatdaily/samples/cancelswallow/README.md)
 
 ## cancel-loop
 
@@ -95,6 +96,7 @@ if nothing happened, until it hits its own safety cap.
 
 Fix checks `isActive` on every pass, so the loop notices the cancellation on
 the very next spin and the tick count freezes immediately.
+Trace, culprit line and fix: [cancelloop/README.md](app/src/main/kotlin/dev/logcatdaily/samples/cancelloop/README.md)
 
 ## cancel-finally
 
@@ -105,6 +107,7 @@ immediately and cleanup logs "cleanup started" but never "cleanup done".
 
 Fix wraps the same call in `withContext(NonCancellable) { cleanup() }`, so
 cleanup is allowed to run to completion even though the job is cancelled.
+Trace, culprit line and fix: [cancelfinally/README.md](app/src/main/kotlin/dev/logcatdaily/samples/cancelfinally/README.md)
 
 ## back-press
 

@@ -73,6 +73,7 @@ landed there.
 
 Fix is `items(tasks, key = { it.id })`, so the checked state travels with
 the task it belongs to, not the slot it happened to be sitting in.
+Trace, culprit line and fix: [lazykey/README.md](app/src/main/kotlin/dev/logcatdaily/samples/lazykey/README.md)
 
 ## cancel-swallow
 

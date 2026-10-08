@@ -13,6 +13,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -25,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -34,6 +37,8 @@ import androidx.compose.ui.unit.sp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 // The cursor arm. Room is the only thing this screen reads.
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,23 +48,34 @@ fun FeedScreen(posts: LazyPagingItems<FeedPost>, modeTag: String) {
     val snackbar = remember { SnackbarHostState() }
     val refresh = posts.loadState.refresh
     var pulled by remember { mutableStateOf(false) }
+    var topAtPull by remember { mutableStateOf<String?>(null) }
 
     // A failed refresh keeps the saved posts. With posts on screen it is a
     // snackbar, with an empty list the whole screen asks for a retry.
-    LaunchedEffect(refresh is LoadState.Error) {
-        if (refresh is LoadState.Error && posts.itemCount > 0) {
-            snackbar.showSnackbar(REFRESH_FAILED)
-        }
+    // The error can land before Room has handed over the saved rows, so the
+    // effect also waits for the first row.
+    val refreshFailed = refresh is LoadState.Error
+    val hasPosts = posts.itemCount > 0
+    LaunchedEffect(refreshFailed, hasPosts) {
+        if (refreshFailed && hasPosts) snackbar.showSnackbar(REFRESH_FAILED)
     }
 
-    // The list may stay on the old first row when posts land above it. After
-    // a pull, jump to the top so the newest posts are in view.
+    // With itemKey the list holds on to the old first row when posts land
+    // above it. After a pull, jump to the top once the new first post is in
+    // the list. Room hands the rows over a moment after the state flips.
     LaunchedEffect(refresh) {
-        if (pulled && refresh is LoadState.NotLoading) {
-            listState.scrollToItem(0)
-            pulled = false
-        } else if (pulled && refresh is LoadState.Error) {
-            pulled = false
+        if (!pulled) return@LaunchedEffect
+        when (refresh) {
+            is LoadState.NotLoading -> {
+                pulled = false
+                val changed = withTimeoutOrNull(1_000) {
+                    snapshotFlow { posts.itemSnapshotList.firstOrNull()?.id }.first { it != topAtPull }
+                    true
+                } == true
+                if (changed) listState.scrollToItem(0)
+            }
+            is LoadState.Error -> pulled = false
+            else -> Unit
         }
     }
 
@@ -68,9 +84,23 @@ fun FeedScreen(posts: LazyPagingItems<FeedPost>, modeTag: String) {
         topBar = { FeedTopBar(modeTag) },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
+        val refreshing = refresh is LoadState.Loading && posts.itemCount > 0
+        val pullState = rememberPullToRefreshState()
         PullToRefreshBox(
-            isRefreshing = refresh is LoadState.Loading && posts.itemCount > 0,
+            isRefreshing = refreshing,
+            state = pullState,
+            // The default indicator is dark grey on dark grey. Accent colour so it shows in a recording.
+            indicator = {
+                PullToRefreshDefaults.Indicator(
+                    state = pullState,
+                    isRefreshing = refreshing,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            },
             onRefresh = {
+                topAtPull = posts.itemSnapshotList.firstOrNull()?.id
                 pulled = true
                 posts.refresh()
             },

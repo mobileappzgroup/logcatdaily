@@ -192,6 +192,30 @@ class FeedRemoteMediatorTest {
     }
 
     @Test
+    fun append_withABadCursorEveryTime_endsInAnError() {
+        load(LoadType.REFRESH)
+        // The server rejects every cursor: the first 400 refreshes once, the
+        // second 400 for the same cursor is an error and nothing is rewritten.
+        api.failures += BadCursorException("cur_81")
+        api.failures += null
+        api.failures += BadCursorException("cur_81")
+        val first = load(LoadType.APPEND)
+        val applyCallsAfterFirst = store.applyCalls
+        val idsAfterFirst = store.ids()
+
+        assertTrue(first is MediatorResult.Success)
+        assertEquals(listOf("first", "after=cur_81", "first"), api.calls)
+
+        // The refresh left cur_81 as the stored cursor, so this APPEND sends it again.
+        val second = load(LoadType.APPEND)
+
+        assertTrue(second is MediatorResult.Error)
+        assertEquals(applyCallsAfterFirst, store.applyCalls)
+        assertEquals(idsAfterFirst, store.ids())
+        assertEquals(listOf("first", "after=cur_81", "first", "after=cur_81"), api.calls)
+    }
+
+    @Test
     fun append_withABadCursorThenAFailedRefresh_returnsErrorAndKeepsThePosts() {
         load(LoadType.REFRESH)
         api.failures += BadCursorException("cur_81")

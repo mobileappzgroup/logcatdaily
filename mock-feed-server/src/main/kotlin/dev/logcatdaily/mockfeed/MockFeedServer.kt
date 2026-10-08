@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicLong
 //   POST /admin/delete-head?n=2          delete the n newest posts
 //   POST /admin/drop-next-reply          the next /feed request gets no reply
 //   POST /admin/expire-next-cursor       the next /feed request with a cursor gets a 400
-//   POST /admin/latency?ms=N             add N ms to every /feed reply
+//   POST /admin/latency?ms=N             wait N ms before every /feed reply is built
 
 private const val PORT = 8081
 private const val SEED_POSTS = 100
@@ -137,6 +137,11 @@ fun main() {
 }
 
 private fun handleFeed(exchange: HttpExchange) {
+    // The wait comes before the page is cut, so a publish or a delete during
+    // the wait shows up in this reply.
+    val delay = latencyMs.get()
+    if (delay > 0) Thread.sleep(delay)
+
     val query = queryOf(exchange)
     val limit = (query["limit"]?.toIntOrNull() ?: DEFAULT_LIMIT).coerceIn(1, MAX_LIMIT)
     val after = query["after"]
@@ -189,8 +194,6 @@ private fun handleFeed(exchange: HttpExchange) {
     val next = if (offset == null) ", next=${nextCursor ?: "null"}" else ""
     log("GET /feed $shape -> $range$next")
 
-    val delay = latencyMs.get()
-    if (delay > 0) Thread.sleep(delay)
     reply(exchange, 200, feedJson(page, nextCursor))
 }
 

@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
@@ -132,6 +133,8 @@ fun main() {
         log("latency: ${ms} ms on every /feed reply")
         reply(exchange, 200, """{"ms":$ms}""")
     }
+    // A /feed reply that waits for the latency must not hold up the admin calls.
+    server.executor = Executors.newCachedThreadPool()
     server.start()
     log("mock-feed-server listening on :$PORT, ${posts.size} posts")
 }

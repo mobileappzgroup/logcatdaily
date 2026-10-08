@@ -31,8 +31,8 @@ data class FeedPostEntity(
     val likeCount: Int,
 )
 
-// One row per feed. The feed only grows downward, so a single "next page"
-// pointer is enough. refreshedAt is local time.
+// One row per feed. Pages only go toward older posts and new posts arrive
+// through REFRESH, so a single "next page" pointer is enough. refreshedAt is local time.
 @Entity(tableName = "feed_state")
 data class FeedState(
     @PrimaryKey val feedId: String = HOME_FEED_ID,

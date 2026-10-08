@@ -42,7 +42,7 @@ Mock server: `mock-feed-server/`, port 8081, 100 mock posts. Admin (POST): `/adm
 `feed_posts`: `id` (`p-0082`), `seq` (server order), `authorId`, `author`, `text`,
 `createdAt`, `likeCount` (mock, changes on the server).
 `feed_state`: one row, `feedId` = `home`, `nextCursor`, `endReached`, `refreshedAt`
-(written, not read here). One row is enough because the feed only grows downward.
+(written and carried forward, not used to decide anything). One row is enough because pages only go toward older posts.
 
 ## The crux
 
@@ -99,7 +99,7 @@ acts like the server. The Room transaction itself is not unit tested.
 - No cap on the cache. A real app limits it by count or age.
 - Refresh drops pages saved deeper than the newest. Chosen, not forgotten.
 - Newest first only. A ranked feed keeps this client, the server pins the ranking.
-- New posts are never inserted above what you read. The pill is drawn, not built.
+- No background arrival can move the list, because the sample has no new-posts signal; the pill is drawn, not built.
 - After process death the list comes back from Room at the top, scroll position is
   not restored (tried once on the emulator). With a network the refresh then replaces
   it with the newest page.

@@ -11,6 +11,7 @@ import dev.logcatdaily.samples.effectkey.EffectKeySample
 import dev.logcatdaily.samples.formhoist.FormHoistSample
 import dev.logcatdaily.samples.lazykey.LazyKeySample
 import dev.logcatdaily.samples.newlistparam.NewListParamSample
+import dev.logcatdaily.samples.newsfeed.NewsFeedSample
 import dev.logcatdaily.samples.offlinechat.OfflineChatSample
 import dev.logcatdaily.samples.readtoohigh.ReadTooHighSample
 import dev.logcatdaily.samples.rotationstate.RotationStateSample
@@ -42,6 +43,7 @@ class MainActivity : ComponentActivity() {
                     "new-list-param" -> NewListParamSample(broken = broken)
                     "wide-param" -> WideParamSample(broken = broken)
                     "offline-chat" -> OfflineChatSample()
+                    "news-feed" -> NewsFeedSample(variant = intent.getStringExtra("variant"))
                     else -> ScrollDerivedSample(broken = broken)
                 }
             }

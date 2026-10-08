@@ -60,6 +60,9 @@ dependencies {
     implementation("androidx.room:room-ktx:2.8.4")
     ksp("androidx.room:room-compiler:2.8.4")
     implementation("androidx.work:work-runtime-ktx:2.12.0")
+    implementation("androidx.paging:paging-runtime:3.3.6")
+    implementation("androidx.paging:paging-compose:3.3.6")
+    implementation("androidx.room:room-paging:2.8.4")
 
     testImplementation("junit:junit:4.13.2")
 }

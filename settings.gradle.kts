@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 rootProject.name = "logcatdaily"
 include(":app")
 include(":mock-chat-server")
+include(":mock-feed-server")

@@ -18,8 +18,8 @@ adb shell am start -n dev.logcatdaily.samples/.MainActivity \
 ```
 
 `sample` is one of `scroll-derived`, `rotation-state`, `effect-key`, `anr-room`, `lazy-key`,
-`cancel-swallow`, `cancel-loop`, `cancel-finally`, `form-hoist`.
-`variant` is `broken` or `fixed`. Everything logs under the tag `logcatdaily`.
+`cancel-swallow`, `cancel-loop`, `cancel-finally`, `form-hoist`, `news-feed`.
+`variant` is `broken` or `fixed` (`news-feed` takes `cursor`, `offset` or `offset-dedupe`). Everything logs under the tag `logcatdaily`.
 
 ## scroll-derived
 
@@ -151,7 +151,8 @@ adb shell am start -n dev.logcatdaily.samples/.interop.ProfileHostActivity
 Design sample: a news feed with Paging 3, Room and a `RemoteMediator`, against a
 local mock server (`mock-feed-server/`, port 8081). `variant` is `cursor`,
 `offset` or `offset-dedupe`: offset paging repeats posts when new ones land and
-skips posts when some are deleted, a cursor does neither.
+skips posts when some are deleted, a cursor does neither when posts are added or
+removed above it.
 
 ```
 adb shell am start -n dev.logcatdaily.samples/.MainActivity \

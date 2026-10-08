@@ -12,8 +12,8 @@ class FeedRepository(
     private val dao: FeedDao,
     private val mediator: FeedRemoteMediator,
 ) {
-    // initialLoadSize matches the first server page. With a RemoteMediator the
-    // default would be three pages, and page 1 would stop lining up with the cursor.
+    // initialLoadSize defaults to 3 x pageSize. The mediator always asks the
+    // server for PAGE_SIZE, so this only sets how many saved rows the first read takes.
     @OptIn(ExperimentalPagingApi::class)
     fun feed(): Flow<PagingData<FeedPost>> = Pager(
         config = PagingConfig(

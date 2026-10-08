@@ -145,3 +145,17 @@ docs recommend for a ComposeView in a Fragment's view.
 ```
 adb shell am start -n dev.logcatdaily.samples/.interop.ProfileHostActivity
 ```
+
+## news-feed
+
+Design sample: a news feed with Paging 3, Room and a `RemoteMediator`, against a
+local mock server (`mock-feed-server/`, port 8081). `variant` is `cursor`,
+`offset` or `offset-dedupe`: offset paging repeats posts when new ones land and
+skips posts when some are deleted, a cursor does neither.
+
+```
+adb shell am start -n dev.logcatdaily.samples/.MainActivity \
+  --es sample news-feed --es variant cursor
+```
+
+Design, API, proof and what is simplified: [newsfeed/README.md](app/src/main/kotlin/dev/logcatdaily/samples/newsfeed/README.md)

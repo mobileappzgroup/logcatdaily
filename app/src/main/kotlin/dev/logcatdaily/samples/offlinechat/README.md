@@ -4,7 +4,7 @@ Design: an offline-first 1:1 chat for Android. Typing a message never waits
 for the network, and a message is stored on the server once, even when the
 reply to the send is lost.
 
-Video: (added on go-live day)
+Video: https://youtu.be/rt3n-O-DvWI
 
 ## Question
 

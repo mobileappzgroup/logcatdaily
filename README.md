@@ -128,6 +128,8 @@ Android 16 device, back never reaches that override, so the app just closes with
 `android:enableOnBackInvokedCallback="false"` on its manifest entry. On the emulator the override runs again there.
 Send back with `adb shell input keyevent KEYCODE_BACK`.
 
+Video: https://youtube.com/shorts/nIGH70Rv7bU (the reel), full trace read of the targetSdk 36 change coming in the Wed 10-21 long.
+
 ## form-hoist
 
 A Profile card with Name and Email fields and a Clear button. Broken version gives each field its own

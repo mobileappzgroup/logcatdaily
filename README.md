@@ -18,7 +18,8 @@ adb shell am start -n dev.logcatdaily.samples/.MainActivity \
 ```
 
 `sample` is one of `scroll-derived`, `rotation-state`, `effect-key`, `anr-room`, `lazy-key`,
-`cancel-swallow`, `cancel-loop`, `cancel-finally`, `form-hoist`, `news-feed`.
+`cancel-swallow`, `cancel-loop`, `cancel-finally`, `form-hoist`, `read-too-high`, `new-list-param`,
+`wide-param`, `news-feed`.
 `variant` is `broken` or `fixed` (`news-feed` takes `cursor`, `offset` or `offset-dedupe`). Everything logs under the tag `logcatdaily`.
 
 ## scroll-derived
@@ -137,6 +138,37 @@ A Profile card with Name and Email fields and a Clear button. Broken version giv
 
 Fix hoists both strings into the form: the fields take `value` and `onValueChange`, and Clear sets both to
 an empty string. The fixed variant also logs the whole form state on every recomposition.
+Trace, culprit line and fix: [formhoist/README.md](app/src/main/kotlin/dev/logcatdaily/samples/formhoist/README.md)
+
+## read-too-high
+
+A parallax header and 30 rows in a `verticalScroll` column. Broken reads `scroll.value` while
+composing, through `Modifier.offset(y = ...)`, so the whole screen and the header recompose
+whenever the scroll position changes: their counters reached 56 in 8 swipes in the recorded run. The rows skip.
+
+Fix is the lambda version, `Modifier.offset { IntOffset(0, scroll.value / 2) }`, which reads the
+value in layout. The counter stays at 1.
+Trace, culprit line and fix: [readtoohigh/README.md](app/src/main/kotlin/dev/logcatdaily/samples/readtoohigh/README.md)
+
+## new-list-param
+
+A button that counts taps, above a list of the open tasks. Broken builds the list with
+`tasks.filter { !it.done }` in the screen body and passes it to `TaskList(tasks: List<Task>)`.
+Every tap makes a new `List` instance, and with strong skipping an unstable parameter is compared
+by instance, so the `TaskList` counter reaches 21 after 20 taps (#1 is the first composition).
+
+Fix is `remember(tasks) { tasks.filter { !it.done } }`, so the instance stays the same and
+`TaskList` stays at 1.
+Trace, culprit line and fix: [newlistparam/README.md](app/src/main/kotlin/dev/logcatdaily/samples/newlistparam/README.md)
+
+## wide-param
+
+A tap button and a card that shows only the name. Broken passes the whole `UiState` to the card.
+Each tap is a `copy()` with a different `taps`, so the card gets a changed parameter and its
+counter reaches 21 after 20 taps, though it never reads `taps`.
+
+Fix is `NameCard(state.name)`. An unchanged `String` is equal, so the card stays at 1.
+Trace, culprit line and fix: [wideparam/README.md](app/src/main/kotlin/dev/logcatdaily/samples/wideparam/README.md)
 
 ## interop
 

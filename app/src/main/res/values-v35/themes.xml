@@ -1,0 +1,5 @@
+<resources>
+    <style name="Theme.LogcatDaily.EdgeOptOut" parent="Theme.LogcatDaily">
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+    </style>
+</resources>

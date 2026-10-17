@@ -8,7 +8,9 @@ import dev.logcatdaily.samples.cancelfinally.CancelFinallySample
 import dev.logcatdaily.samples.cancelloop.CancelLoopSample
 import dev.logcatdaily.samples.cancelswallow.CancelSwallowSample
 import dev.logcatdaily.samples.effectkey.EffectKeySample
+import dev.logcatdaily.samples.fileupload.FileUploadSample
 import dev.logcatdaily.samples.formhoist.FormHoistSample
+import dev.logcatdaily.samples.keyboardrotate.KeyboardRotateSample
 import dev.logcatdaily.samples.lazykey.LazyKeySample
 import dev.logcatdaily.samples.newlistparam.NewListParamSample
 import dev.logcatdaily.samples.newsfeed.NewsFeedSample
@@ -16,6 +18,8 @@ import dev.logcatdaily.samples.offlinechat.OfflineChatSample
 import dev.logcatdaily.samples.readtoohigh.ReadTooHighSample
 import dev.logcatdaily.samples.rotationstate.RotationStateSample
 import dev.logcatdaily.samples.scrollderived.ScrollDerivedSample
+import dev.logcatdaily.samples.supervisorcrash.SupervisorCrashSample
+import dev.logcatdaily.samples.swappedids.SwappedIdsSample
 import dev.logcatdaily.samples.ui.LogcatDailyTheme
 import dev.logcatdaily.samples.wideparam.WideParamSample
 
@@ -42,8 +46,12 @@ class MainActivity : ComponentActivity() {
                     "read-too-high" -> ReadTooHighSample(broken = broken)
                     "new-list-param" -> NewListParamSample(broken = broken)
                     "wide-param" -> WideParamSample(broken = broken)
+                    "keyboard-rotate" -> KeyboardRotateSample(variant = intent.getStringExtra("variant") ?: "broken")
+                    "supervisor-crash" -> SupervisorCrashSample(broken = broken)
+                    "swapped-ids" -> SwappedIdsSample(broken = broken)
                     "offline-chat" -> OfflineChatSample()
                     "news-feed" -> NewsFeedSample(variant = intent.getStringExtra("variant"))
+                    "file-upload" -> FileUploadSample(variant = intent.getStringExtra("variant"), intent = intent)
                     else -> ScrollDerivedSample(broken = broken)
                 }
             }

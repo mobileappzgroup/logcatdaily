@@ -1,5 +1,6 @@
 <resources>
     <color name="bg0">#0B0E13</color>
+    <color name="window_bg">#F7F8FA</color>
     <color name="accent">#16C79A</color>
     <color name="amber">#FFB454</color>
     <color name="text_primary">#F2F5F8</color>

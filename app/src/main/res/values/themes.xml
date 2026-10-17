@@ -1,7 +1,9 @@
 <resources>
-    <style name="Theme.LogcatDaily" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/bg0</item>
-        <item name="android:statusBarColor">@color/bg0</item>
-        <item name="android:navigationBarColor">@color/bg0</item>
+    <style name="Theme.LogcatDaily" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_bg</item>
+        <item name="android:statusBarColor">@color/window_bg</item>
+        <item name="android:navigationBarColor">@color/window_bg</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
+    <style name="Theme.LogcatDaily.EdgeOptOut" parent="Theme.LogcatDaily" />
 </resources>

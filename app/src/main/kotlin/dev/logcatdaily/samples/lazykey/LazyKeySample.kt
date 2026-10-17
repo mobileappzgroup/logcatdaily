@@ -31,21 +31,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.logcatdaily.samples.ui.Avatar
 import kotlinx.coroutines.delay
 
 private const val TAG = "logcatdaily"
 
-private data class Task(val id: Int, val label: String)
+private data class Task(val id: Int, val label: String, val owner: String, val due: String)
 
 private fun initialTasks() = listOf(
-    Task(1, "Fix crash on cold start"),
-    Task(2, "Update compileSdk to 36"),
-    Task(3, "Review PR #42"),
-    Task(4, "Reply to Play Store review"),
-    Task(5, "Write release notes"),
-    Task(6, "Bump target API"),
-    Task(7, "Triage ANR reports"),
-    Task(8, "Ship dark mode"),
+    Task(1, "Fix crash on cold start", "Asha", "Today"),
+    Task(2, "Update compileSdk to 36", "Nishant", "Today"),
+    Task(3, "Review PR #42", "Ravi", "10:30"),
+    Task(4, "Reply to Play Store review", "Meera", "Tomorrow"),
+    Task(5, "Write release notes", "Nishant", "Tomorrow"),
+    Task(6, "Bump target API", "Kabir", "Fri"),
+    Task(7, "Triage ANR reports", "Isha", "Fri"),
+    Task(8, "Ship dark mode", "Asha", "Mon"),
 )
 
 @Composable
@@ -77,7 +78,7 @@ fun LazyKeySample(broken: Boolean) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
                     .padding(horizontal = 24.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -128,12 +129,19 @@ private fun TaskRow(task: Task, onDelete: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(checked = checked, onCheckedChange = { checked = it })
-        Text(
-            text = task.label,
-            fontSize = 20.sp,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.weight(1f),
-        )
+        Avatar(task.owner, size = 36.dp, modifier = Modifier.padding(start = 4.dp, end = 12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = task.label,
+                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = "${task.owner} · ${task.due}",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
         Box(
             modifier = Modifier
                 .size(32.dp)

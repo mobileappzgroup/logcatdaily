@@ -3,8 +3,10 @@ package dev.logcatdaily.samples.backpress
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.logcatdaily.samples.ui.Avatar
 
 private const val TAG = "logcatdaily"
 
@@ -36,9 +40,11 @@ fun BackPressSample(
     broken: Boolean,
     legacyDialog: Boolean,
     onLegacyDialogDismiss: () -> Unit,
+    onEditsChanged: (Int) -> Unit = {},
 ) {
     var edits by remember { mutableIntStateOf(0) }
     var fixedDialog by remember { mutableStateOf(false) }
+    LaunchedEffect(edits) { onEditsChanged(edits) }
 
     if (!broken) {
         BackHandler(enabled = edits > 0) {
@@ -53,20 +59,37 @@ fun BackPressSample(
                 .fillMaxWidth()
                 .padding(horizontal = 32.dp)
                 .clip(RoundedCornerShape(20.dp))
-                .background(MaterialTheme.colorScheme.surface)
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
                 .padding(24.dp),
         ) {
-            Text(
-                text = "Draft",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Spacer(Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Avatar("Nishant", size = 44.dp)
+                Column(Modifier.padding(start = 12.dp)) {
+                    Text(
+                        text = "Draft",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                    Text(
+                        text = "Nishant · Release notes v2.4 · 10:05",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.outline,
+                    )
+                }
+            }
+            Spacer(Modifier.height(16.dp))
             Text(
                 text = "$edits unsaved edits",
                 fontSize = 18.sp,
                 color = MaterialTheme.colorScheme.onBackground,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Fixes a crash on cold start and bumps targetSdk to 36.",
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.outline,
             )
             Spacer(Modifier.height(20.dp))
             Button(

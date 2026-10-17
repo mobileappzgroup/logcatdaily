@@ -4,7 +4,7 @@ Design: the Instagram or Twitter feed for an Android app. Scroll without
 repeats or gaps while new posts land at the top and old ones are deleted, and
 keep scrolling with no connection.
 
-Video: (added on go-live day)
+Video: https://youtu.be/aOWp1I2tnB0
 
 ## The question
 
@@ -106,4 +106,5 @@ acts like the server. The Room transaction itself is not unit tested.
 
 ## Video
 
-(added on go-live day)
+- Long: https://youtu.be/aOWp1I2tnB0
+- Short: added on its go-live day (Sun 2026-10-18)

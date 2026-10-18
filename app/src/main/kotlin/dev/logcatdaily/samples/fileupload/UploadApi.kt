@@ -41,9 +41,15 @@ open class UploadApi(private val baseUrl: String = "http://10.0.2.2:8083") {
 
     open suspend fun queryOffset(sessionUrl: String): ApiReply = call(sessionUrl, "HEAD") { }
 
-    // The design says PATCH. HttpURLConnection is not documented to accept it,
-    // so the sample sends POST with the override header the server also accepts.
-    open suspend fun sendChunk(sessionUrl: String, offset: Long, data: ByteArray, length: Int): ApiReply =
+    // The design says PATCH. HttpURLConnection is not
+    // documented to accept it, so the sample sends POST
+    // with the override header the server also accepts.
+    open suspend fun sendChunk(
+        sessionUrl: String,
+        offset: Long,
+        data: ByteArray,
+        length: Int
+    ): ApiReply =
         call(sessionUrl, "POST") { c ->
             c.setRequestProperty("X-HTTP-Method-Override", "PATCH")
             c.setRequestProperty("Upload-Offset", offset.toString())

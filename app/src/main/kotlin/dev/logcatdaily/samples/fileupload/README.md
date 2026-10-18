@@ -1,8 +1,8 @@
 # file-upload
 
 Design: upload a big file from an Android app so a dropped connection or a killed
-app carries on from where it stopped, never from byte 0, and never sends a chunk
-the server already has.
+app carries on from the server's offset instead of byte 0, and aims not to resend
+chunks the server already has.
 
 ## The question
 
@@ -56,10 +56,11 @@ with the row before any request), `fileName`, `sourcePath` (app-private), `total
 
 ## The crux
 
-A dropped connection can lose the chunk or only its reply. On the emulator an airplane
-cut lost the reply: the server saved the 14th chunk about 1 s after the phone went offline.
+A dropped connection can lose the chunk or only its reply. On my emulator and throttled
+mock an airplane cut lost the reply: the server saved the 14th chunk about 1 s after the phone went offline.
 The obvious fix, "count my own bytes in Room", sends that chunk again at its own count and gets
-409 forever, with WorkManager waiting 10, 20, 40 s between tries. The fix that holds
+409 on every try until it gives up after 6 attempts, with WorkManager waiting
+about 10, 20, 40 s between tries. The fix that holds
 asks the server first ([`askOffset`](UploadRunner.kt#L146), [`ResumeDecision`](ResumeDecision.kt#L12)):
 `HEAD` says 14680064, the app had 13631488, it goes on from the server's number.
 

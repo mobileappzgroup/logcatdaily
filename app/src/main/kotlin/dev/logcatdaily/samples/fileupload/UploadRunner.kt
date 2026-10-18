@@ -112,7 +112,10 @@ class UploadRunner(
                 is ApiReply.Ok -> {
                     conflicts = 0
                     // counter trusts its own count, server takes the reply's.
-                    val now = if (config.askServerOffset) reply.offset ?: (chunk.offset + chunk.length) else chunk.offset + chunk.length
+                    val now = if (config.askServerOffset)
+                        reply.offset ?: (chunk.offset + chunk.length)
+                    else
+                        chunk.offset + chunk.length
                     offset = now
                     dao.setConfirmed(row.id, now)
                     onProgress(row, now)

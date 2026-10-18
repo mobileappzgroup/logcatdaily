@@ -1,6 +1,7 @@
 package dev.logcatdaily.samples.fileupload
 
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
@@ -43,7 +44,8 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         } catch (e: CancellationException) {
             // WorkManager stopped the work: the network constraint went away, the
             // user cancelled, or the system ran out of patience. The row decides what's next.
-            Log.i(TAG, "Upload $id stopped by WorkManager, reason=${stopReasonName(stopReason)}")
+            val reason = if (Build.VERSION.SDK_INT >= 31) stopReasonName(stopReason) else "unknown"
+            Log.i(TAG, "Upload $id stopped by WorkManager, reason=$reason")
             throw e
         }
         return when (result) {

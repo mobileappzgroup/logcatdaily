@@ -32,7 +32,8 @@ open class UploadApi(private val baseUrl: String = "http://10.0.2.2:8083") {
         call("/files", "POST") { c ->
             c.setRequestProperty("Upload-Length", totalBytes.toString())
             c.setRequestProperty("X-Content-SHA256", sha256)
-            if (idempotencyKey != null) c.setRequestProperty("Idempotency-Key", idempotencyKey)
+            if (idempotencyKey != null)
+                c.setRequestProperty("Idempotency-Key", idempotencyKey)
             c.doOutput = true
             c.setFixedLengthStreamingMode(0)
             c.outputStream.close()

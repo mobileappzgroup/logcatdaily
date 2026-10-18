@@ -9,6 +9,7 @@ import java.security.MessageDigest
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
@@ -35,6 +36,7 @@ private const val PORT = 8083
 private const val DEFAULT_KBPS = 700L
 private const val STEP = 64 * 1024
 private const val MIB = 1024.0 * 1024.0
+private const val IDLE_MS = 6_000L
 
 private class Session(val id: String, val length: Long, val key: String?, val sha256: String?, val file: File) {
     var offset = 0L
@@ -56,6 +58,7 @@ private val dropCreateReply = AtomicBoolean(false)
 private var keepPartial = false
 private val dir = File("mock-upload-server/build/uploads")
 private val clock = DateTimeFormatter.ofPattern("HH:mm:ss")
+private val watchdogs = Executors.newSingleThreadScheduledExecutor { Thread(it).apply { isDaemon = true } }
 
 private fun log(line: String) = println("${LocalTime.now().format(clock)}  $line")
 
@@ -219,8 +222,12 @@ private fun handleChunk(exchange: HttpExchange, id: String, viaOverride: Boolean
     var verdict = 204
     var newOffset: Long
     synchronized(lock) {
-        if (sessions[id] !== session || session.offset != offset) {
-            // The session was deleted or moved while the body was arriving.
+        if (sessions[id] !== session) {
+            // Deleted while the body was arriving (a cancel): the session is gone.
+            verdict = 404
+            newOffset = session.offset
+        } else if (session.offset != offset) {
+            // Another call moved the offset while the body was arriving.
             verdict = 409
             newOffset = session.offset
             conflicts++
@@ -241,6 +248,10 @@ private fun handleChunk(exchange: HttpExchange, id: String, viaOverride: Boolean
         }
     }
     when (verdict) {
+        404 -> {
+            log("PATCH /files/$id offset=$offset -> 404 session deleted while the chunk arrived")
+            reply(exchange, 404, "no such session")
+        }
         409 -> {
             log("PATCH /files/$id offset=$offset -> 409 server offset is $newOffset")
             reply(exchange, 409, "server offset is $newOffset")
@@ -302,11 +313,17 @@ private fun handleWhole(exchange: HttpExchange) {
 }
 
 // Reads up to `expected` bytes in 64 KB steps and sleeps so the average rate is
-// the throttle. A client that closes early leaves a shorter array.
+// the throttle. A client that closes early leaves a shorter array. A phone in
+// airplane mode never closes its side: the emulator keeps the Mac's socket open,
+// so a body that stops for IDLE_MS is treated as a client that went away.
 private fun readThrottled(exchange: HttpExchange, expected: Long): ByteArray {
     val out = java.io.ByteArrayOutputStream(expected.coerceAtMost(4L * 1024 * 1024).toInt())
     val buffer = ByteArray(STEP)
     var left = expected
+    val lastRead = AtomicLong(System.currentTimeMillis())
+    val watchdog = watchdogs.scheduleAtFixedRate({
+        if (System.currentTimeMillis() - lastRead.get() > IDLE_MS) exchange.close()
+    }, 1, 1, TimeUnit.SECONDS)
     try {
         exchange.requestBody.use { input ->
             while (left > 0) {
@@ -314,12 +331,15 @@ private fun readThrottled(exchange: HttpExchange, expected: Long): ByteArray {
                 if (n < 0) break
                 out.write(buffer, 0, n)
                 left -= n
+                lastRead.set(System.currentTimeMillis())
                 val kbps = throttleKbps.get().coerceAtLeast(1)
                 Thread.sleep(n * 1000L / (kbps * 1024L))
             }
         }
     } catch (e: IOException) {
-        // Reset by the peer: keep what arrived.
+        // Reset by the peer, or closed by the watchdog: keep what arrived.
+    } finally {
+        watchdog.cancel(false)
     }
     return out.toByteArray()
 }

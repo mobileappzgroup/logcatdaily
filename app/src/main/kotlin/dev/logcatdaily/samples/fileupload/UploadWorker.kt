@@ -10,7 +10,9 @@ import androidx.work.ForegroundInfo
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.CancellationException
 import java.util.concurrent.TimeUnit
 
 private const val TAG = "logcatdaily"
@@ -34,8 +36,15 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             false
         }
 
-        val result = repository.run(id) { row, confirmed ->
-            if (foreground) setForeground(UploadNotifications.foregroundInfo(applicationContext, row, confirmed))
+        val result = try {
+            repository.run(id) { row, confirmed ->
+                if (foreground) setForeground(UploadNotifications.foregroundInfo(applicationContext, row, confirmed))
+            }
+        } catch (e: CancellationException) {
+            // WorkManager stopped the work: the network constraint went away, the
+            // user cancelled, or the system ran out of patience. The row decides what's next.
+            Log.i(TAG, "Upload $id stopped by WorkManager, reason=${stopReasonName(stopReason)}")
+            throw e
         }
         return when (result) {
             RunResult.Done -> {
@@ -56,6 +65,14 @@ class UploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker
     }
 
     companion object {
+        private fun stopReasonName(reason: Int): String = when (reason) {
+            WorkInfo.STOP_REASON_CONSTRAINT_CONNECTIVITY -> "no network"
+            WorkInfo.STOP_REASON_CANCELLED_BY_APP -> "cancelled by the app"
+            WorkInfo.STOP_REASON_FOREGROUND_SERVICE_TIMEOUT -> "foreground service timeout"
+            WorkInfo.STOP_REASON_TIMEOUT -> "timeout"
+            else -> "code $reason"
+        }
+
         fun request(id: String): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<UploadWorker>()
                 .setInputData(Data.Builder().putString(KEY_ID, id).build())

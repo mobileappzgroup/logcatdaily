@@ -19,8 +19,8 @@ adb shell am start -n dev.logcatdaily.samples/.MainActivity \
 
 `sample` is one of `scroll-derived`, `rotation-state`, `effect-key`, `anr-room`, `lazy-key`,
 `cancel-swallow`, `cancel-loop`, `cancel-finally`, `form-hoist`, `read-too-high`, `new-list-param`,
-`wide-param`, `news-feed`.
-`variant` is `broken` or `fixed` (`news-feed` takes `cursor`, `offset` or `offset-dedupe`). Everything logs under the tag `logcatdaily`.
+`wide-param`, `news-feed`, `file-upload`.
+`variant` is `broken` or `fixed` (`news-feed` takes `cursor`, `offset` or `offset-dedupe`; `file-upload` takes `single`, `counter` or `server`). Everything logs under the tag `logcatdaily`.
 
 ## scroll-derived
 
@@ -194,3 +194,17 @@ adb shell am start -n dev.logcatdaily.samples/.MainActivity \
 ```
 
 Design, API, proof and what is simplified: [newsfeed/README.md](app/src/main/kotlin/dev/logcatdaily/samples/newsfeed/README.md)
+
+## file-upload
+
+Design sample: upload a 24 MB file in 1 MB chunks with WorkManager and Room, against a
+local mock server (`mock-upload-server/`, port 8083). `variant` is `single` (one request,
+starts again at byte 0), `counter` (chunks, trusts its own count, gets stuck on a lost
+reply) or `server` (chunks, asks the server where to continue).
+
+```
+adb shell am start -n dev.logcatdaily.samples/.MainActivity \
+  --es sample file-upload --es variant server
+```
+
+Design, API, proof and what is simplified: [fileupload/README.md](app/src/main/kotlin/dev/logcatdaily/samples/fileupload/README.md)

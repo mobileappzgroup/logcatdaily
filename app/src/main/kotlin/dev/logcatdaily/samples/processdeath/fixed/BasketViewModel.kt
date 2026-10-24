@@ -6,12 +6,14 @@ import androidx.lifecycle.ViewModel
 private const val KEY = "items"
 
 class BasketViewModel(
-    val state: SavedStateHandle,
+    val state:
+        SavedStateHandle,
 ) : ViewModel() {
-    val items = state.getStateFlow(
-        KEY,
-        listOf<String>(),
-    )
+    val items =
+        state.getStateFlow(
+            KEY,
+            listOf<String>(),
+        )
 
     fun add(item: String) {
         state[KEY] = items.value + item

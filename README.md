@@ -19,7 +19,7 @@ adb shell am start -n dev.logcatdaily.samples/.MainActivity \
 
 `sample` is one of `scroll-derived`, `rotation-state`, `effect-key`, `anr-room`, `lazy-key`,
 `cancel-swallow`, `cancel-loop`, `cancel-finally`, `form-hoist`, `read-too-high`, `new-list-param`,
-`wide-param`, `news-feed`, `file-upload`.
+`wide-param`, `livedata-bg`, `news-feed`, `file-upload`.
 `variant` is `broken` or `fixed` (`news-feed` takes `cursor`, `offset` or `offset-dedupe`; `file-upload` takes `single`, `counter` or `server`). Everything logs under the tag `logcatdaily`.
 
 ## scroll-derived
@@ -169,6 +169,13 @@ counter reaches 21 after 20 taps, though it never reads `taps`.
 
 Fix is `NameCard(state.name)`. An unchanged `String` is equal, so the card stays at 1.
 Trace, culprit line and fix: [wideparam/README.md](app/src/main/kotlin/dev/logcatdaily/samples/wideparam/README.md)
+
+## livedata-bg
+
+A Load button that fetches a list on `Dispatchers.IO` and sets it on a `MutableLiveData`.
+`setValue` from the background thread throws `IllegalStateException` and the app closes.
+`postValue`, or `withContext(Dispatchers.Main)` first, fixes it (`variant` is `broken`, `fixed` or `fixed-main`).
+Trace, culprit line and fix: [livedatabg/README.md](app/src/main/kotlin/dev/logcatdaily/samples/livedatabg/README.md)
 
 ## interop
 

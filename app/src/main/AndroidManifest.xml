@@ -64,6 +64,10 @@
             android:name=".interop.ProfileHostActivity"
             android:exported="true" />
 
+        <activity
+            android:name=".fragmentbinding.FragmentBindingActivity"
+            android:exported="true" />
+
         <service
             android:name="androidx.work.impl.foreground.SystemForegroundService"
             android:foregroundServiceType="dataSync"

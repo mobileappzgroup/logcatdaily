@@ -31,6 +31,26 @@ D logcatdaily: basket opened, items=3   (pid 12778)
 
 I checked `pidof` before and after: the old pid was gone each time.
 
+### Runs for ViewModel vs SavedStateHandle (2026-10-27)
+
+Same sample, four runs, `adb logcat -v threadtime -s logcatdaily` (columns: time, pid, tid). Three items added each time. No code change was needed.
+
+Rotation (`user_rotation 1`), same pid, the activity is recreated and the ViewModel survives, so both variants keep 3:
+
+```
+broken: 15007  basket opened, items=0 -> added Milk, Eggs, Bread -> 15007  basket opened, items=3
+fixed:  15147  basket opened, items=0 -> added Milk, Eggs, Bread -> 15147  basket opened, items=3
+```
+
+Process death (Home, `am kill`, reopen from Recents), new pid:
+
+```
+broken: 15653  basket opened, items=0 -> added Milk, Eggs, Bread -> 15748  basket opened, items=0
+fixed:  15810  basket opened, items=0 -> added Milk, Eggs, Bread -> 15902  basket opened, items=3
+```
+
+Rotation alone does not separate a plain ViewModel from SavedStateHandle. Only process death does.
+
 ## Culprit
 
 [`broken/BasketViewModel.kt:9`](broken/BasketViewModel.kt#L9)

@@ -58,8 +58,10 @@ fun PortraitLockSample(broken: Boolean) {
 
 @Composable
 private fun BoxWithConstraintsScope.AdaptiveInbox() {
-    if (maxWidth >= 600.dp) TwoPane()
-    else OnePane()
+    if (maxWidth >= 600.dp)
+        TwoPane()
+    else
+        OnePane()
 }
 
 // requested is the manifest lock as the activity reports it, orientation is

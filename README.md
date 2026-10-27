@@ -19,8 +19,8 @@ adb shell am start -n dev.logcatdaily.samples/.MainActivity \
 
 `sample` is one of `scroll-derived`, `rotation-state`, `effect-key`, `anr-room`, `lazy-key`,
 `cancel-swallow`, `cancel-loop`, `cancel-finally`, `form-hoist`, `read-too-high`, `new-list-param`,
-`wide-param`, `livedata-bg`, `news-feed`, `file-upload`.
-`variant` is `broken` or `fixed` (`news-feed` takes `cursor`, `offset` or `offset-dedupe`; `file-upload` takes `single`, `counter` or `server`). Everything logs under the tag `logcatdaily`.
+`wide-param`, `livedata-bg`, `news-feed`, `file-upload`, `launch-async`, `flow-vs-shared`, `data-copy`, `lateinit-lazy`.
+`variant` is `broken` or `fixed` (`lateinit-lazy` also takes `lazy`; `flow-vs-shared` takes `state-late`, `shared-late`, `state-equal` or `shared-equal`; `news-feed` takes `cursor`, `offset` or `offset-dedupe`; `file-upload` takes `single`, `counter` or `server`). Everything logs under the tag `logcatdaily`.
 
 ## scroll-derived
 
@@ -215,3 +215,41 @@ adb shell am start -n dev.logcatdaily.samples/.MainActivity \
 ```
 
 Design, API, proof and what is simplified: [fileupload/README.md](app/src/main/kotlin/dev/logcatdaily/samples/fileupload/README.md)
+
+## launch-async
+
+A card with three buttons. In `viewModelScope`, a `launch` that throws crashes the app, an `async` that throws and is never awaited loses the error silently, and the same `async` with `await()` in a try/catch surfaces it. One tap per button, no variant.
+Trace, culprit line and fix: [launchasync/README.md](app/src/main/kotlin/dev/logcatdaily/samples/launchasync/README.md)
+
+## flow-vs-shared
+
+Four small cases run on launch: what a late collector gets from a `StateFlow` vs a `MutableSharedFlow` with replay 0, and what each does with equal values.
+Trace and notes: [flowvsshared/README.md](app/src/main/kotlin/dev/logcatdaily/samples/flowvsshared/README.md)
+
+## data-copy
+
+A note with a list of tags and a Draft made with `copy()`. In the broken variant adding a tag to the Draft also changes the Original.
+Trace, culprit line and fix: [datacopy/README.md](app/src/main/kotlin/dev/logcatdaily/samples/datacopy/README.md)
+
+## lateinit-lazy
+
+One button on a session screen: a `lateinit` property read before it is set crashes, `isInitialized` guards it, and a `by lazy` property runs its initializer once.
+Trace, culprit line and fix: [lateinitlazy/README.md](app/src/main/kotlin/dev/logcatdaily/samples/lateinitlazy/README.md)
+
+## portrait-lock
+
+An inbox in an activity locked to portrait in the manifest. Not launched through `MainActivity`:
+
+```
+adb shell am start -n dev.logcatdaily.samples/.portraitlock.PortraitLockActivity --ez adaptive false
+```
+
+Trace, culprit line and fix: [portraitlock/README.md](app/src/main/kotlin/dev/logcatdaily/samples/portraitlock/README.md)
+
+## module-structure
+
+A small shop app in three Gradle layouts, one of which fails with a circular dependency. Separate builds, see [module-structure/README.md](module-structure/README.md).
+
+## kspmigrate-standalone
+
+A separate one-module build where an old `kotlinOptions` block fails on Kotlin 2.4.21. See [kspmigrate-standalone/README.md](kspmigrate-standalone/README.md).

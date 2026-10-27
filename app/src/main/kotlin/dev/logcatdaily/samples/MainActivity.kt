@@ -7,11 +7,15 @@ import dev.logcatdaily.samples.anrroom.AnrRoomSample
 import dev.logcatdaily.samples.cancelfinally.CancelFinallySample
 import dev.logcatdaily.samples.cancelloop.CancelLoopSample
 import dev.logcatdaily.samples.cancelswallow.CancelSwallowSample
+import dev.logcatdaily.samples.datacopy.DataCopySample
 import dev.logcatdaily.samples.effectkey.EffectKeySample
 import dev.logcatdaily.samples.fileupload.FileUploadSample
+import dev.logcatdaily.samples.flowvsshared.FlowVsSharedSample
 import dev.logcatdaily.samples.formhoist.FormHoistSample
+import dev.logcatdaily.samples.launchasync.LaunchAsyncSample
 import dev.logcatdaily.samples.keyboardrotate.KeyboardRotateSample
 import dev.logcatdaily.samples.lazykey.LazyKeySample
+import dev.logcatdaily.samples.lateinitlazy.LateinitLazyScreen
 import dev.logcatdaily.samples.livedatabg.LiveDataBgSample
 import dev.logcatdaily.samples.navdup.NavDupSample
 import dev.logcatdaily.samples.newlistparam.NewListParamSample
@@ -50,12 +54,16 @@ class MainActivity : ComponentActivity() {
                     "wide-param" -> WideParamSample(broken = broken)
                     "keyboard-rotate" -> KeyboardRotateSample(variant = intent.getStringExtra("variant") ?: "broken")
                     "supervisor-crash" -> SupervisorCrashSample(broken = broken)
+                    "launch-async" -> LaunchAsyncSample()
                     "swapped-ids" -> SwappedIdsSample(broken = broken)
                     "nav-dup" -> NavDupSample(broken = broken)
+                    "data-copy" -> DataCopySample(broken = broken)
+                    "lateinit-lazy" -> LateinitLazyScreen(variant = intent.getStringExtra("variant") ?: "broken")
                     "livedata-bg" -> LiveDataBgSample(variant = intent.getStringExtra("variant") ?: "broken")
                     "offline-chat" -> OfflineChatSample()
                     "news-feed" -> NewsFeedSample(variant = intent.getStringExtra("variant"))
                     "file-upload" -> FileUploadSample(variant = intent.getStringExtra("variant"), intent = intent)
+                    "flow-vs-shared" -> FlowVsSharedSample(case = intent.getStringExtra("variant") ?: "state-late")
                     else -> ScrollDerivedSample(broken = broken)
                 }
             }

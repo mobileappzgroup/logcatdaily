@@ -40,7 +40,8 @@
         <activity
             android:name=".portraitlock.PortraitLockActivity"
             android:exported="true"
-            android:screenOrientation="portrait" />
+            android:screenOrientation=
+                "portrait" />
 
         <activity
             android:name=".keyboardrotate.KeyboardRotateManifestActivity"

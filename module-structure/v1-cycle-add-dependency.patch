@@ -1,0 +1,31 @@
+diff --color -ru a/feature/checkout/build.gradle.kts b/feature/checkout/build.gradle.kts
+--- a/feature/checkout/build.gradle.kts
++++ b/feature/checkout/build.gradle.kts
+@@ -31,6 +31,7 @@
+     implementation(libs.androidx.compose.ui)
+     implementation(libs.androidx.compose.foundation)
+     implementation(libs.androidx.compose.material3)
++    implementation(project(":feature:cart"))
+     implementation(project(":core:ui"))
+     implementation(project(":core:model"))
+ }
+diff --color -ru a/feature/checkout/src/main/kotlin/dev/logcatdaily/samples/modules/checkout/CheckoutScreen.kt b/feature/checkout/src/main/kotlin/dev/logcatdaily/samples/modules/checkout/CheckoutScreen.kt
+--- a/feature/checkout/src/main/kotlin/dev/logcatdaily/samples/modules/checkout/CheckoutScreen.kt
++++ b/feature/checkout/src/main/kotlin/dev/logcatdaily/samples/modules/checkout/CheckoutScreen.kt
+@@ -5,13 +5,15 @@
+ import androidx.compose.foundation.layout.padding
+ import androidx.compose.material3.Text
+ import androidx.compose.runtime.Composable
++import androidx.compose.runtime.collectAsState
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.unit.dp
++import dev.logcatdaily.samples.modules.cart.CartTotals
+ import dev.logcatdaily.samples.modules.model.Money
+ 
+ @Composable
+ fun CheckoutScreen(modifier: Modifier = Modifier) {
+-    val total = Money(0)
++    val total = CartTotals.total.collectAsState(initial = Money(0)).value
+     Column(modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+         Text("Checkout")
+         Text("Pay ${total.format()}")

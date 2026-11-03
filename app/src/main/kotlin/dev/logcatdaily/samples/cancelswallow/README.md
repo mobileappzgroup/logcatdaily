@@ -75,3 +75,5 @@ adb logcat -s logcatdaily
 ## Video
 
 - Long: https://youtu.be/q60oKHK_0m0
+- Short (Android interview question 5): https://youtube.com/shorts/SAEfLnP3TrQ
+- Reel: https://www.instagram.com/reel/DfSC-DyEXyZ/

@@ -3,10 +3,12 @@ package dev.logcatdaily.samples.flowvsshared
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 private const val TAG = "logcatdaily"
@@ -74,6 +76,20 @@ suspend fun runCase(case: String, scope: CoroutineScope, onLine: (String) -> Uni
                 events.emit(v)
                 delay(300)
             }
+            job.cancel()
+        }
+        // A buffered Channel holds the event until someone receives it, so the late collector still gets it, once.
+        "channel-late" -> {
+            val events = Channel<String>(Channel.BUFFERED)
+            log("channel send Nishant signed in")
+            events.send("Nishant signed in")
+            delay(300)
+            log("collector starts")
+            val job = collect("collector", events.receiveAsFlow())
+            delay(300)
+            log("channel send Nishant signed out")
+            events.send("Nishant signed out")
+            delay(300)
             job.cancel()
         }
         else -> log("unknown case $case")

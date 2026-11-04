@@ -1,6 +1,6 @@
 # flow-vs-shared
 
-A small screen that runs one case at a time and prints what a collector actually receives from a `StateFlow` and from a `MutableSharedFlow` with replay 0. Four cases, no bug to fix: this one shows how the two types differ.
+A small screen that runs one case at a time and prints what a collector actually receives from a `StateFlow` and from a `MutableSharedFlow` with replay 0. Four cases, no bug to fix: this one shows how the two types differ. A fifth case, `channel-late`, shows a buffered `Channel` for the one-shot event.
 
 ## Symptom
 
@@ -72,9 +72,29 @@ val state = MutableStateFlow("Nishant offline")
 
 A StateFlow always holds a value and hands the latest one to every new collector. That suits state. It also drops a set that equals the current value ([line 57](FlowVsSharedCases.kt#L57)), so it is wrong for events that can repeat. In this sample I would keep SharedFlow for events and add `replay = 1` only if a late collector must see the last one.
 
+## Channel for the one-shot event
+
+[`FlowVsSharedCases.kt:83`](FlowVsSharedCases.kt#L83)
+
+```kotlin
+val events = Channel<String>(Channel.BUFFERED)
+```
+
+Late collector, buffered Channel (`channel-late`):
+
+```
+channel send Nishant signed in
+collector starts
+collector got Nishant signed in
+channel send Nishant signed out
+collector got Nishant signed out
+```
+
+The Channel held "Nishant signed in" until the collector started, and the collector got it once. A Channel delivers each item to one receiver, so it fits one collector, not several. Android's own guide prefers turning ViewModel events into UI state: https://developer.android.com/topic/architecture/ui-layer/events
+
 ## Run it
 
-`variant` is the case: `state-late`, `shared-late`, `state-equal` or `shared-equal`.
+`variant` is the case: `state-late`, `shared-late`, `state-equal`, `shared-equal` or `channel-late`.
 
 ```
 adb shell am start -n dev.logcatdaily.samples/.MainActivity --es sample flow-vs-shared --es variant state-late

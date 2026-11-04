@@ -21,7 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// case is one of state-late, shared-late, state-equal, shared-equal
+// case is one of state-late, shared-late, state-equal, shared-equal, channel-late
 @Composable
 fun FlowVsSharedSample(case: String) {
     val lines = remember { mutableStateListOf<String>() }

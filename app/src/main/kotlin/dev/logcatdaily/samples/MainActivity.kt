@@ -24,6 +24,7 @@ import dev.logcatdaily.samples.offlinechat.OfflineChatSample
 import dev.logcatdaily.samples.readtoohigh.ReadTooHighSample
 import dev.logcatdaily.samples.rotationstate.RotationStateSample
 import dev.logcatdaily.samples.scrollderived.ScrollDerivedSample
+import dev.logcatdaily.samples.scopesiblings.ScopeSiblingsSample
 import dev.logcatdaily.samples.supervisorcrash.SupervisorCrashSample
 import dev.logcatdaily.samples.swappedids.SwappedIdsSample
 import dev.logcatdaily.samples.ui.LogcatDailyTheme
@@ -54,6 +55,7 @@ class MainActivity : ComponentActivity() {
                     "wide-param" -> WideParamSample(broken = broken)
                     "keyboard-rotate" -> KeyboardRotateSample(variant = intent.getStringExtra("variant") ?: "broken")
                     "supervisor-crash" -> SupervisorCrashSample(broken = broken)
+                    "scope-siblings" -> ScopeSiblingsSample(variant = intent.getStringExtra("variant"))
                     "launch-async" -> LaunchAsyncSample()
                     "swapped-ids" -> SwappedIdsSample(broken = broken)
                     "nav-dup" -> NavDupSample(broken = broken)

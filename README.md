@@ -19,8 +19,8 @@ adb shell am start -n dev.logcatdaily.samples/.MainActivity \
 
 `sample` is one of `scroll-derived`, `rotation-state`, `effect-key`, `anr-room`, `lazy-key`,
 `cancel-swallow`, `cancel-loop`, `cancel-finally`, `form-hoist`, `read-too-high`, `new-list-param`,
-`wide-param`, `livedata-bg`, `news-feed`, `file-upload`, `launch-async`, `flow-vs-shared`, `data-copy`, `lateinit-lazy`.
-`variant` is `broken` or `fixed` (`lateinit-lazy` also takes `lazy`; `flow-vs-shared` takes `state-late`, `shared-late`, `state-equal` or `shared-equal`; `news-feed` takes `cursor`, `offset` or `offset-dedupe`; `file-upload` takes `single`, `counter` or `server`). Everything logs under the tag `logcatdaily`.
+`wide-param`, `livedata-bg`, `news-feed`, `file-upload`, `launch-async`, `flow-vs-shared`, `data-copy`, `lateinit-lazy`, `scope-siblings`.
+`variant` is `broken` or `fixed` (`lateinit-lazy` also takes `lazy`; `flow-vs-shared` takes `state-late`, `shared-late`, `state-equal`, `shared-equal` or `channel-late`; `scope-siblings` takes `coroutinescope`, `supervisorscope` or `supervisornohandler`; `news-feed` takes `cursor`, `offset` or `offset-dedupe`; `file-upload` takes `single`, `counter` or `server`). Everything logs under the tag `logcatdaily`.
 
 ## scroll-derived
 
@@ -223,8 +223,13 @@ Trace, culprit line and fix: [launchasync/README.md](app/src/main/kotlin/dev/log
 
 ## flow-vs-shared
 
-Four small cases run on launch: what a late collector gets from a `StateFlow` vs a `MutableSharedFlow` with replay 0, and what each does with equal values.
+Five small cases run on launch: what a late collector gets from a `StateFlow`, a `MutableSharedFlow` with replay 0 and a buffered `Channel`, and what StateFlow and SharedFlow do with equal values.
 Trace and notes: [flowvsshared/README.md](app/src/main/kotlin/dev/logcatdaily/samples/flowvsshared/README.md)
+
+## scope-siblings
+
+Two uploads side by side. B fails after 600 ms: inside `coroutineScope` it cancels A, inside `supervisorScope` A keeps running, and without a handler on B the app still crashes.
+Trace, culprit line and fix: [scopesiblings/README.md](app/src/main/kotlin/dev/logcatdaily/samples/scopesiblings/README.md)
 
 ## data-copy
 

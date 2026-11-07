@@ -27,7 +27,7 @@ private data class UiState(val name: String, val unread: Int, val taps: Int)
 
 @Composable
 fun WideParamSample(broken: Boolean) {
-    var state by remember { mutableStateOf(UiState("Asha", unread = 3, taps = 0)) }
+    var state by remember { mutableStateOf(UiState("Nishant", unread = 3, taps = 0)) }
     val count = remember { intArrayOf(0) }
     SideEffect { Log.d(TAG, "Screen recompose #${++count[0]}") }
 

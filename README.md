@@ -258,3 +258,7 @@ A small shop app in three Gradle layouts, one of which fails with a circular dep
 ## kspmigrate-standalone
 
 A separate one-module build where an old `kotlinOptions` block fails on Kotlin 2.4.21. See [kspmigrate-standalone/README.md](kspmigrate-standalone/README.md).
+
+## collectlatest-standalone
+
+A plain JVM coroutines run: a typed search through a flow, `collect` against `collectLatest`. See [collectlatest-standalone/README.md](collectlatest-standalone/README.md).

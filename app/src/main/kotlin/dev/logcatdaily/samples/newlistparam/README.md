@@ -55,8 +55,8 @@ This runs in the screen body, so every recomposition builds a new `List`.
 `TaskList(tasks: List<Task>)` takes it as a parameter. `List` is not a stable
 type, and with strong skipping (on by default since Kotlin 2.0.20) an unstable
 parameter is compared by instance. Same contents, new instance, so it counts
-as changed and `TaskList` runs again. The rows skip because `Task` is a data
-class of stable fields, compared with `equals`.
+as changed and `TaskList` runs again. The rows skip because each row gets the
+same `Task` object as last time, so nothing it takes has changed.
 
 ## Fix
 

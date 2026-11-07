@@ -1,6 +1,6 @@
 # wide-param
 
-A "taps: n" button and a card that shows the name "Asha". The state is one
+A "taps: n" button and a card that shows the name "Nishant". The state is one
 data class, `UiState(name, unread, taps)`, and the button changes `taps`.
 The card only shows `name`, but it recomposes on every tap.
 
@@ -35,7 +35,7 @@ logcatdaily: Screen recompose #2
 logcatdaily: Screen recompose #21
 ```
 
-22 lines. `Screen` runs 21 times because it reads `taps`. `NameCard` stays at 1.
+22 lines. `Screen` runs 21 times because it reads `state` at line 48. `NameCard` stays at 1.
 
 ## Culprit
 

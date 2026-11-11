@@ -50,3 +50,8 @@ Two things the run also shows. `lastSeen` sits in the class body, so it is not p
 ```
 ./gradlew --no-daemon run
 ```
+
+## Video
+
+- Short: https://youtube.com/shorts/YYlLJs37m5Y
+- Reel: https://www.instagram.com/reel/Dfcj7w2gNTC/

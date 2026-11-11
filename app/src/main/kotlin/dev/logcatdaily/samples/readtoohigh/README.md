@@ -82,3 +82,4 @@ The swipes: `adb shell input swipe 540 1800 540 600 300` four times, then
 ## Video
 
 - Long: https://youtu.be/_II773SUM5M?t=20 (Screen recomposes on scroll, 0:20)
+- Long (interview questions): https://www.youtube.com/watch?v=A7wunAHnoCM

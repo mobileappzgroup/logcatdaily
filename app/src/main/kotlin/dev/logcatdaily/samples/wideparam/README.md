@@ -80,3 +80,4 @@ coordinates hit the button on a 1080x2400 emulator.
 ## Video
 
 - Long: https://youtu.be/_II773SUM5M?t=164 (Card recomposes, same name, 2:44)
+- Long (interview questions): https://www.youtube.com/watch?v=A7wunAHnoCM

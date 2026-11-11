@@ -86,3 +86,4 @@ coordinates hit the button on a 1080x2400 emulator.
 ## Video
 
 - Long: https://youtu.be/_II773SUM5M?t=92 (Child recomposes, same list, 1:32)
+- Long (interview questions): https://www.youtube.com/watch?v=A7wunAHnoCM

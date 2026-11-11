@@ -67,3 +67,10 @@ cd agpbuiltin-standalone
 ```
 
 `app/build.gradle.kts` is the fixed file. To see the failure, copy `app/build.gradle.kts.broken` over it.
+
+## Video
+
+- Short: https://youtube.com/shorts/h_hbXZKtsMw
+- Reel: https://www.instagram.com/reel/DfeEDnukxDa/
+- Short (Gradle minimum version): https://youtube.com/shorts/Xma3EpQspEk
+- Reel (Gradle minimum version): https://www.instagram.com/reel/DfhqFKCDl4A/

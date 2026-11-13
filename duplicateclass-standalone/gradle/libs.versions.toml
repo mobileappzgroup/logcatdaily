@@ -1,0 +1,10 @@
+[versions]
+agp = "9.5.1"
+protobuf = "3.25.5"
+
+[libraries]
+protobuf-java = { group = "com.google.protobuf", name = "protobuf-java", version.ref = "protobuf" }
+protobuf-javalite = { group = "com.google.protobuf", name = "protobuf-javalite", version.ref = "protobuf" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }

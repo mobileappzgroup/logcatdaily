@@ -1,0 +1,27 @@
+plugins {
+    alias(libs.plugins.android.application)
+}
+
+android {
+    namespace = "dev.logcatdaily.samples.duplicateclass"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "dev.logcatdaily.samples.duplicateclass"
+        minSdk = 26
+        targetSdk = 36
+        versionCode = 1
+        versionName = "1.0"
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // Two jars with the same classes: the full protobuf runtime and the lite one.
+    implementation(libs.protobuf.java)
+    implementation(libs.protobuf.javalite)
+}

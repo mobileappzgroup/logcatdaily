@@ -262,3 +262,7 @@ A separate one-module build where an old `kotlinOptions` block fails on Kotlin 2
 ## collectlatest-standalone
 
 A plain JVM coroutines run: a typed search through a flow, `collect` against `collectLatest`. See [collectlatest-standalone/README.md](collectlatest-standalone/README.md).
+
+## duplicateclass-standalone
+
+An empty app with protobuf-java and protobuf-javalite: the build stops with "Duplicate class ... found in modules". See [duplicateclass-standalone/README.md](duplicateclass-standalone/README.md).

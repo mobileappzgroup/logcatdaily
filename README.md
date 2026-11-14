@@ -266,3 +266,7 @@ A plain JVM coroutines run: a typed search through a flow, `collect` against `co
 ## duplicateclass-standalone
 
 An empty app with protobuf-java and protobuf-javalite: the build stops with "Duplicate class ... found in modules". See [duplicateclass-standalone/README.md](duplicateclass-standalone/README.md).
+
+## gson-standalone
+
+A plain JVM run with Retrofit 3.0.0 and Gson 2.15.0: the server sends a JSON array, the interface asks for one object, Gson throws "Expected BEGIN_OBJECT but was BEGIN_ARRAY". See [gson-standalone/README.md](gson-standalone/README.md).
